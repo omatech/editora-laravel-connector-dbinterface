@@ -1,0 +1,6 @@
+.front-edit { position:absolute !important; display:block; z-index: 1; border: 2px dotted gray; background-color: #ffffff; z-index: 99999;}
+.front-edit-relative { position:relative !important; display:block; }
+
+.link-edit { color: black; float: right; background-color: white; border: 2px solid black; padding: 10px; position: fixed; right: 0px; top: 0px; z-index: 1000; }
+.link-edit-blanc { position:absolute !important; color:#ffffff; top:0px; left:0px; }
+.edit_img { border: 0px; padding: 0px; margin:0px; width: 24px !important; height: 22px !important; }
