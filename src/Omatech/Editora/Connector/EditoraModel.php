@@ -3,29 +3,42 @@
 namespace Omatech\Editora\Connector;
 
 use App;
-use Omatech\Editora\Extractor\Editora as Extractor;
-use Omatech\Editora\Extractor\GraphQLPreprocessor;
+use Omatech\Editora\Extractor\Extractor;
 
 class EditoraModel
 {
     public static $debugMessages = "";
 
-    public static function extract($query, $params, $object, $ferret) {
-        $extractor = App::make('Extractor');
-        $result = $extractor->extract($query, $params, $object, $ferret);
+    public static function extractor($params=array()) {
+        $editora_conn_array = array(
+            'dbname' =>  env('DB_DATABASE'),
+            'user' => env('DB_USERNAME'),
+            'password' => env('DB_PASSWORD'),
+            'host' => env('DB_HOST'),
+            'driver' => 'pdo_mysql',
+            'charset' => 'utf8'
+        );
 
-        if($params['debug'] === true) self::$debugMessages = $extractor->debug_messages;
+        if (!array_key_exists('lang', $params)){
+            $params['lang'] = App::getLocale();
+        }
 
-        return $result;
-    }
-
-    public static function magic($query, $params) {
-        $params['lang'] = App::getLocale();
-        if (!isset($params['metadata'])){
+        if (!array_key_exists('metadata', $params)){
             $params['metadata'] = true;
         }
 
-        $query = GraphQLPreprocessor::generate($query, config('editora.extractNullValues', false));
-        return self::extract($query, $params, 'array', true);
+        if (!array_key_exists('timings', $params)){
+            $params['timings'] = true;
+        }
+        if (!array_key_exists('show_inmediate_debug', $params)){
+            $params['show_inmediate_debug'] = true;
+        }
+
+        $extractor = new Extractor($editora_conn_array, $params);
+
+
+        return $extractor;
     }
+
+
 }
