@@ -75,5 +75,20 @@ class ConnectorServiceProvider extends ServiceProvider
         if($laravelRelease >= 4) $middlewareMethod = "aliasMiddleware";
 
         $this->app['router']->$middlewareMethod('setLocale', 'Omatech\Editora\Connector\Middlewares\SetLocaleMiddleware');
+
+        $this->registerHelpers();
     }
+
+    /**
+     * Register helpers file
+     */
+    public function registerHelpers()
+    {
+        // Load the helpers in app/Http/helpers.php
+        if (file_exists($file =  __DIR__.'/Helper/EditoraHelper.php'))
+        {
+            require $file;
+        }
+    }
+
 }
