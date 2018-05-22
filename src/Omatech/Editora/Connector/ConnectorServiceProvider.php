@@ -89,6 +89,10 @@ class ConnectorServiceProvider extends ServiceProvider
         {
             require $file;
         }
+        if (file_exists($file =  __DIR__.'/Helper/StaticTextHelper.php'))
+        {
+            require $file;
+        }
     }
 
 }
