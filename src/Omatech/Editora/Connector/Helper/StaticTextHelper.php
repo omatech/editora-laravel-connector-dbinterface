@@ -2,7 +2,7 @@
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 
-use App\Models\Eloquent\StaticTexts;
+use Omatech\Editora\Connector\Models\StaticTexts;
 
 if (!function_exists('_t')) {
     /**
