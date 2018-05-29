@@ -116,4 +116,96 @@ if (!function_exists('_t')) {
         return $url;
     }
 
+    function _getTextCutted($titol, $caracters=200, $tags=''){
+        $titol = strip_tags($titol, $tags);
+        $res = "";
+        $titolx = rtrim($titol," \t.");
+
+        if (strlen($titolx) <= $caracters) {
+            $res = $titolx;
+        }
+        else {
+            $str = $titol;
+            $limit = $caracters;
+            $very_small_factor = 0.7;
+            $small_factor = 0.4;
+            $large_factor = 0.4;
+            $very_large_factor = 0.6;
+
+            $str = substr($str,0,$limit+10);
+            $chars = '*,\',f,i,í,ï,j,l,t,(,)';
+            $chars_arr=explode(',', $chars);
+            $count=0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if($char=="*") $char=",";
+                $count+=strlen($str)-strlen(str_replace($char, '', $str));
+            }
+            $very_small = $count;
+
+
+            $str = substr($str,0,$limit+10);
+            $chars =  'r,s,z,J,I,Í,Ï, ';
+            $chars_arr=explode(',', $chars);
+            $count=0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if($char=="*") $char=",";
+                $count+=strlen($str)-strlen(str_replace($char, '', $str));
+            }
+            $small = $count;
+
+
+            $str = substr($str,0,$limit+10);
+            $chars =  'a,b,d,e,g,o,p,q,F,L,P,R,S,T,Y,Z';
+            $chars_arr=explode(',', $chars);
+            $count=0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if($char=="*") $char=",";
+                $count+=strlen($str)-strlen(str_replace($char, '', $str));
+            }
+            $large = $count;
+
+            $str = substr($str,0,$limit+10);
+            $chars =  'm,w,A,À,Á,B,C,D,E,G,H,K,M,N,Ñ,O,Ò,Ó,Q,U,Ú,Ü,V,W,X';
+            $chars_arr=explode(',', $chars);
+            $count=0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if($char=="*") $char=",";
+                $count+=strlen($str)-strlen(str_replace($char, '', $str));
+            }
+            $very_large = $count;
+
+
+            $limit = $limit+($very_small*$very_small_factor)+($small*$small_factor);
+            $limit = $limit-($large*$large_factor)-($very_large*$very_large_factor);
+            $caracters = round($limit);
+
+
+            if (strlen($titolx)<=$caracters) { // retorno directament l'string, es prou curt
+                $res=$titolx;
+            }
+            else { // es massa llarg, recorrem l'array i parem quan no pugem mes
+                $arr=explode(" ",$titolx);
+                $cont=0;
+                foreach($arr as $paraula) {
+                    if ((strlen($res)+strlen($paraula)+1)<=$caracters) {
+                        if ($cont!=0) $res.=' ';
+                        $res.=$paraula;
+                    }
+                    else {
+                        $res.='...';
+                        break;
+                    }
+                    $cont++;
+                }
+            }
+        }
+
+        return $res;
+    }
+
+
 }
