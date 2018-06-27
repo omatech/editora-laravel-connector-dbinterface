@@ -29,6 +29,14 @@ $data = array(
         'Blocs' => [
         ]
     ),
+    'attributes_order_string' => array(
+        //id=>array(tag, caption_ca, caption_es, caption_en OR id=>tag
+        80 => array('surnname', 'Cognoms', 'Apellidos', 'Surname')
+    ),
+    'attributes_order_date' => array(
+        //id=>array(tag, caption_ca, caption_es, caption_en OR id=>tag
+        90 => array('news_date', 'Data noticia', 'Fecha noticia', 'News Date')
+    ), 
     'attributes_string' => array(
         //id=>array(tag, caption_ca, caption_es, caption_en OR id=>tag
         100 => array('nom', 'Nom', 'Nombre', 'Name'),
