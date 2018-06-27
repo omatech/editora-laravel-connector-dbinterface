@@ -4,8 +4,10 @@ namespace Omatech\Editora\Connector;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Utils\Editora as Utils;
+use Omatech\Editora\Connector\Commands\EditoraCreate;
 
 class ConnectorServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,7 @@ class ConnectorServiceProvider extends ServiceProvider
         //Publicamos el archivo de configuración
         $this->publishes([
             __DIR__.'/Configuration.php' => config_path('editora.php'),
+            __DIR__.'/editoradatabase_sample.php' => config_path('editoradatabase.php'),
         ]);
 
         //Publicamos los controllers
@@ -77,6 +80,8 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->app['router']->$middlewareMethod('setLocale', 'Omatech\Editora\Connector\Middlewares\SetLocaleMiddleware');
 
         $this->registerHelpers();
+
+        $this->commands(EditoraCreate::class);
     }
 
     /**
