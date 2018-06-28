@@ -5,6 +5,7 @@ namespace Omatech\Editora\Connector;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Omatech\Editora\Connector\Commands\EditoraModernize;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Utils\Editora as Utils;
 use Omatech\Editora\Connector\Commands\EditoraCreate;
@@ -81,7 +82,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
         $this->registerHelpers();
 
-        $this->commands(EditoraCreate::class);
+        $this->commands([EditoraCreate::class, EditoraModernize::class]);
     }
 
     /**
