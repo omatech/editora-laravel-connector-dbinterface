@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Config;
 
 use Omatech\Editora\Connector\Models\StaticTexts;
 
-if (!function_exists('_t')) {
+if (!function_exists('_statictext')) {
     /**
      * Shorthand function for translating text.
      *
