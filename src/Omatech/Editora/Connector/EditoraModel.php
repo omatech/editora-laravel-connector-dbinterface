@@ -4,41 +4,56 @@ namespace Omatech\Editora\Connector;
 
 use App;
 use Omatech\Editora\Extractor\Extractor;
+use Omatech\Editora\Loader\Loader;
 
-class EditoraModel
-{
-    public static $debugMessages = "";
+class EditoraModel {
 
-    public static function extractor($params=array()) {
-        $editora_conn_array = array(
-            'dbname' =>  env('DB_DATABASE'),
-            'user' => env('DB_USERNAME'),
-            'password' => env('DB_PASSWORD'),
-            'host' => env('DB_HOST'),
-            'driver' => 'pdo_mysql',
-            'charset' => 'utf8'
-        );
+	public static $debugMessages = "";
 
-        if (!array_key_exists('lang', $params)){
-            $params['lang'] = App::getLocale();
-        }
+	public static function getDBArray() {
+		return $editora_conn_array = array(
+			'dbname' => env('DB_DATABASE'),
+			'user' => env('DB_USERNAME'),
+			'password' => env('DB_PASSWORD'),
+			'host' => env('DB_HOST'),
+			'driver' => 'pdo_mysql',
+			'charset' => 'utf8'
+		);
+	}
 
-        if (!array_key_exists('metadata', $params)){
-            $params['metadata'] = true;
-        }
+	public static function defaultParams($params=array())
+	{
+		if (!array_key_exists('lang', $params)) {
+			$params['lang'] = App::getLocale();
+		}
 
-        if (!array_key_exists('timings', $params)){
-            $params['timings'] = true;
-        }
-        if (!array_key_exists('show_inmediate_debug', $params)){
-            $params['show_inmediate_debug'] = true;
-        }
+		if (!array_key_exists('metadata', $params)) {
+			$params['metadata'] = true;
+		}
 
-        $extractor = new Extractor($editora_conn_array, $params);
+		if (!array_key_exists('timings', $params)) {
+			$params['timings'] = true;
+		}
+		if (!array_key_exists('show_inmediate_debug', $params)) {
+			$params['show_inmediate_debug'] = true;
+		}
+		return $params;
+	}
+	
+	
+	public static function extractor($params = array()) {
 
-
-        return $extractor;
-    }
-
+		$editora_conn_array = self::getDBArray();
+		$params=self::defaultParams($params);
+		$extractor = new Extractor($editora_conn_array, $params);
+		return $extractor;
+	}
+	
+	public static function loader($params = array()) {
+		$editora_conn_array = self::getDBArray();
+		$params=self::defaultParams($params);
+		$loader = new Loader($editora_conn_array, $params);
+		return $loader;
+	}	
 
 }

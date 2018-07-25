@@ -65,9 +65,6 @@ class ConnectorServiceProvider extends ServiceProvider
             'dbhost' => env('DB_HOST'),
         ];
 
-        $this->app->bind('Extractor', function() use($db) {
-            return new Extractor($db);
-        });
 
         $this->app->bind('Utils', function() use ($db) {
             return new Utils($db);
