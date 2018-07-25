@@ -29,7 +29,7 @@ class EditoraModel {
 
 		if (!array_key_exists('metadata', $params)) {
 			$params['metadata'] = true;
-		}
+		} 
 
 		if (!array_key_exists('timings', $params)) {
 			$params['timings'] = true;
