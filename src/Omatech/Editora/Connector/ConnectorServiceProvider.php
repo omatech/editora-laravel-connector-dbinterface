@@ -68,7 +68,7 @@ class ConnectorServiceProvider extends ServiceProvider
 					'charset' => 'utf8'
         ]; 
 */
-				$db=DB::connection()->getPdo();
+				$db=DB::connection()->getDoctrineConnection();
         $this->app->bind('Extractor', function() use($db) {
             return new Extractor($db);
         });
