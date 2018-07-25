@@ -58,7 +58,7 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Configuration.php', 'editora'
         );
 
-        $db = [
+/*        $db = [
 					'dbname' => env('DB_DATABASE'),
 					'user' => env('DB_USERNAME'),
 					'password' => env('DB_PASSWORD'),
@@ -66,7 +66,8 @@ class ConnectorServiceProvider extends ServiceProvider
 					'driver' => 'pdo_mysql',
 					'charset' => 'utf8'
         ];
-
+*/
+				$db=DB::connection()->getPdo();
         $this->app->bind('Extractor', function() use($db) {
             return new Extractor($db);
         });
