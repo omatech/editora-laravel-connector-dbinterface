@@ -22,5 +22,7 @@ return [
     'forcedLanguage'     => '',
     'adminAlias'         => 'admin',
     'middlewares'        => [],
-    'extractNullValues'  => false
+    'extractNullValues'  => true,
+		'useFrontendRoutes' => true // set this flag to false if you want to avoid automatic Editora Route interpretation
 ];
+

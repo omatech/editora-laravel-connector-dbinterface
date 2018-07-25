@@ -11,6 +11,9 @@
 |
 */
 
+if (config('editora.useFrontendRoutes', true))
+{
+
 Route::group(['middleware' => ['web']], function()
 {
     $routes = config('editora.routeParams');
@@ -33,3 +36,5 @@ Route::group(['middleware' => ['web']], function()
         Route::get($routeString, 'Omatech\Editora\Connector\EditoraController@init');
     }
 });
+
+}
