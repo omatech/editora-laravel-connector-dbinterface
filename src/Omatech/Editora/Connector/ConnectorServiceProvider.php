@@ -65,7 +65,7 @@ class ConnectorServiceProvider extends ServiceProvider
 					'host' => env('DB_HOST'),
 					'driver' => 'pdo_mysql',
 					'charset' => 'utf8'
-        ];
+        ]; 
 */
 				$db=DB::connection()->getPdo();
         $this->app->bind('Extractor', function() use($db) {
