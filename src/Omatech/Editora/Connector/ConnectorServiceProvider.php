@@ -59,12 +59,12 @@ class ConnectorServiceProvider extends ServiceProvider
         );
 
         $db = [
-            'dbname' => env('DB_DATABASE'),
-            'dbuser' => env('DB_USERNAME'),
-            'dbpass' => env('DB_PASSWORD'),
-            'dbhost' => env('DB_HOST'),
-						'driver' => 'pdo_mysql',
-						'charset' => 'utf8'
+					'dbname' => env('DB_DATABASE'),
+					'user' => env('DB_USERNAME'),
+					'password' => env('DB_PASSWORD'),
+					'host' => env('DB_HOST'),
+					'driver' => 'pdo_mysql',
+					'charset' => 'utf8'
         ];
 
         $this->app->bind('Extractor', function() use($db) {
