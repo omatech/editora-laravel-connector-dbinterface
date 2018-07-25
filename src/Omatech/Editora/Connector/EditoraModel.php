@@ -8,9 +8,9 @@ use Omatech\Editora\Loader\Loader;
 
 class EditoraModel {
 
-	public static $debugMessages = "";
+	public $debugMessages = "";
 
-	public static function getDBArray() {
+/*	public static function getDBArray() {
 		return $editora_conn_array = array(
 			'dbname' => env('DB_DATABASE'),
 			'user' => env('DB_USERNAME'),
@@ -20,7 +20,7 @@ class EditoraModel {
 			'charset' => 'utf8'
 		);
 	}
-
+*/
 	public static function defaultParams($params=array())
 	{
 		if (!array_key_exists('lang', $params)) {
@@ -43,16 +43,20 @@ class EditoraModel {
 	
 	public static function extractor($params = array()) {
 
-		$editora_conn_array = self::getDBArray();
+		//$editora_conn_array = self::getDBArray();
 		$params=self::defaultParams($params);
-		$extractor = new Extractor($editora_conn_array, $params);
+		$extractor=App::make('Extractor');
+		$extractor->setParams($params);
+		//$extractor = new Extractor($editora_conn_array, $params);
 		return $extractor;
 	}
 	
 	public static function loader($params = array()) {
-		$editora_conn_array = self::getDBArray();
+		//$editora_conn_array = self::getDBArray();
 		$params=self::defaultParams($params);
-		$loader = new Loader($editora_conn_array, $params);
+		$loader=App::make('Loader');
+		$loader->setParams($params);
+		//$loader = new Loader($editora_conn_array, $params);
 		return $loader;
 	}	
 
