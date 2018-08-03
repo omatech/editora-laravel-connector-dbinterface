@@ -12,6 +12,8 @@ use Omatech\Editora\Loader\Loader;
 use Omatech\Editora\Utils\Editora as Utils;
 use Omatech\Editora\Connector\Commands\EditoraCreate;
 
+use Omatech\Editora\Connector\Commands\EditoraFakeContent;
+
 class ConnectorServiceProvider extends ServiceProvider
 {
     /**
@@ -91,7 +93,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
         $this->registerHelpers();
 
-        $this->commands([EditoraCreate::class, EditoraModernize::class]);
+        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class]);
     }
 
     /**
