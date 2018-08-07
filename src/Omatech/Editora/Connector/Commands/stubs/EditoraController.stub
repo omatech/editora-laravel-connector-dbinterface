@@ -1,0 +1,22 @@
+<?php
+
+namespace DummyNamespace;
+
+use App\Models\DummyModelClass;
+use Illuminate\Http\Request;
+
+class DummyClass extends GlobalController
+{
+   public $inst_id;
+   public $preview;
+   public $viewData;
+
+    public function render(Request $request) {
+        $this->viewData['global'] = $global = $request['global'];
+
+        $ext = DummyModelClass::build($this->inst_id, $this->preview);
+        $this->viewData['instance'] = $ext;
+
+        return response()->view('editora.DummyLowerCaseClass', $this->viewData);
+    }
+}

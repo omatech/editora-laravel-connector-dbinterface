@@ -1,0 +1,45 @@
+@extends('base')
+
+@section('body')
+    <main id="">
+
+        @if(isset($instance))
+            <p><b>Instance</b></p>
+
+            @foreach($instance as $key=>$value)
+
+                @if(!is_array($value))
+                    <p><u>{{$key}}</u> => {{$value}}</p>
+                @endif
+
+            @endforeach
+
+            @if(isset($instance['relations']))
+                @foreach($instance['relations'] as $key_rel => $relation)
+
+                    @if(!empty($relation['instances']))
+                        <br><p><b>Relation: {{$key_rel}}</b></p>
+
+                        @foreach($relation['instances'] as $key_child_rel=>$relation_child)
+
+                            @foreach($relation_child as $key_child => $value_child)
+                                @if(!is_array($value_child))
+                                    <p><u>{{$key_child}}</u> => {{$value_child}}</p>
+                                @endif
+                            @endforeach
+
+                        @endforeach
+                    @endif
+
+                @endforeach
+            @endif
+
+        @else
+            <p align="center">Empty instance content</p>
+        @endif
+
+    </main>
+@stop
+
+@section('extra-js')
+@stop
