@@ -24,3 +24,18 @@ en require:
 7- En el directorio config del laravel existen los ficheros de configuración editora y editoradatabase
 
 8- si modificamos el fichero editoradatabase, podemos regenerar la base de datos con el comando php artisan editora:create
+
+
+##Commands Laravel
+
+Crear los archivos Model View Controller de las Clases de Editora.
+
+**php artisan editora:createmvc**
+
+Mejoras:
+Falta el force para borrar.
+
+
+
+
+
