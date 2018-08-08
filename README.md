@@ -67,6 +67,14 @@ php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 Falta añadir contenido aleatorio para algunos atributos (mapas, date,...). 
 
 
+####- Modernize
+Añade la nueva estructura de la editora en la base de datos. (indices, columnas nuevas, batchs_ids, etc)
+
+**_php artisan editora:modernize_**
+
+
+
+
 
 
 
