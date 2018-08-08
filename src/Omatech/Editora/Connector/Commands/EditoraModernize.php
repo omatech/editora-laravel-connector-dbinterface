@@ -38,7 +38,7 @@ class EditoraModernize extends Command
      */
     public function handle()
     {
-        $command = base_path('/vendor/omatech/editora-dbinterface/modernize.php');
+        $command = base_path('/vendor/omatech/editora-dbinterface/Commands/modernize.php');
 
         $this->line(shell_exec('php '.$command.' --to=db4 --dbhost='.env('DB_CONNECTION').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').''));
     }
