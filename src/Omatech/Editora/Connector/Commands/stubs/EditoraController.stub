@@ -14,9 +14,11 @@ class DummyClass extends GlobalController
     public function render(Request $request) {
         $this->viewData['global'] = $global = $request['global'];
 
-        $ext = DummyModelClass::build($this->inst_id, $this->preview);
+        $ext = DummyModelClass::find($this->inst_id, $this->preview);
         $this->viewData['instance'] = $ext;
 
         return response()->view('editora.DummyLowerCaseClass', $this->viewData);
     }
+
+
 }

@@ -8,7 +8,7 @@ use Omatech\Editora\Connector\EditoraModel;
 
 class DummyModelClass extends EditoraModel {
 
-    public static function build($id, $preview, $debug = false) {
+    public static function find($id, $preview, $debug = false) {
 
         $params = ['debug' => $debug];
         $extractor = self::extractor($params);
@@ -20,4 +20,16 @@ DummyRelations
         return $result;
     }
 
+    public static function findAll($preview, $debug = false) {
+
+        $classId = DummyClassID;
+        $params = ['debug' => $debug];
+        $extractor = self::extractor($params);
+
+        $result = $extractor->findInstancesInClass($classId, null, $params, function($i) use ($extractor) {
+DummyRelations
+        });
+
+        return $result;
+        }
 }

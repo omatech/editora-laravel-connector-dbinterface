@@ -127,6 +127,7 @@ class EditoraCreateMVC extends Command {
 
 				$replace["DummyModelClass"] = $class->name . 'Model';
 				$replace["DummyRelations"] = $this->getChildrenRelations($class->class_id);
+				$replace["DummyClassID"] = $class->class_id;
 
 				$file = str_replace(array_keys($replace), array_values($replace), $file);
 
