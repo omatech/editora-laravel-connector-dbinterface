@@ -61,6 +61,7 @@ php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 --exclude_classes generate all but this class_ids, comma separated
 --pictures_theme generate pictures themed with that word, default:cats you can use abstract, animals, business, cats, city, food, nightlife, fashion, people, nature, sports, technics, transport
 --debug show all sqls (if not present false)
+--delete_previous_data **USE WITH CAUTION**, if set deletes all the previous data before generating the fake data
 
 
 **Mejoras:**
