@@ -68,7 +68,9 @@ class EditoraCreateMVC extends Command {
 																		(select class_id
 																		from omp_class_attributes ca
 																		where ca.atri_id=10002
-																		group by class_id)");
+																		group by class_id)
+																		AND id <> 1
+																		ORDER BY id");
 			foreach ($classes as $class) {
 				//View in templates
 				$this->createViewTemplate($class);
@@ -190,7 +192,9 @@ class EditoraCreateMVC extends Command {
 			} else {
 				echo "Not exist stub view template\n";
 			}
-		}
+        } else {
+            echo "Exist " . $class->name . " View Template\n";
+        }
 	}
 
 	/*
