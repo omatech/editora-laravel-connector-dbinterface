@@ -1,3 +1,5 @@
+{{--Editora: Create MVC --}}
+
 @if(isset($instance))
     <p><b>Instance</b></p>
 
@@ -32,3 +34,7 @@
 @else
     <p align="center">Empty instance content</p>
 @endif
+
+@section('extra-js-template')
+    @parent
+@endsection

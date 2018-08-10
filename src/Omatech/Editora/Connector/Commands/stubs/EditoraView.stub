@@ -1,3 +1,5 @@
+{{--Editora: Create MVC --}}
+
 @extends('base')
 
 @section('body')
@@ -42,4 +44,5 @@
 @stop
 
 @section('extra-js')
-@stop
+    @parent
+@endsection
