@@ -38,6 +38,11 @@ Crear los archivos Model View Controller de las Clases de Editora (si no existen
 
 **_php artisan editora:createmvc_**
 
+**Argumentos:**
+
+{--include_classes=}
+
+--include_classes generate only this class_ids, comma separated
 
 **Mejoras:**
 Falta crear argumento de force para borrar si o si las clases.

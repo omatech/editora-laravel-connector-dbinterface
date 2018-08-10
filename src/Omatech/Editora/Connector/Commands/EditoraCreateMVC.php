@@ -16,7 +16,7 @@ class EditoraCreateMVC extends Command {
 	 *
 	 * @var string
 	 */
-	protected $signature = 'editora:createmvc';
+	protected $signature = 'editora:createmvc {--include_classes=}';
 
 	/**
 	 * The console command description.
@@ -42,10 +42,33 @@ class EditoraCreateMVC extends Command {
 	public function handle() {
 		if (strcmp(env('APP_ENV'), 'local') == 0) {
 
-			//Classes con NICEURL
-			$classes = DB::table('omp_class_attributes')
-					->join('omp_classes', 'omp_class_attributes.class_id', '=', 'omp_classes.id')
-					->select('omp_class_attributes.class_id', 'omp_classes.name')->where('atri_id', '10002')->get();
+		    /* include_class */
+            $arguments = '';
+            $include_class = '';
+            if(!empty($this->option('include_classes'))) {
+                $arguments = $this->option('include_classes');
+                $classes = explode(",", $arguments);
+
+                foreach ($classes as $key => $class) {
+                    if ($key == 0) {
+                        $include_class .= ' AND id = ' . $class . ' ';
+                    } else {
+                        $include_class .= ' OR id = ' . $class . ' ';
+                    }
+                }
+            }
+
+            //Classes con NICEURL
+            $classes = DB::select("select id as class_id, name from omp_classes 
+                                        where id in 
+                                        (select class_id
+                                        from omp_class_attributes ca
+                                        where ca.atri_id=10002
+                                        group by class_id)
+                                        AND id <> 1
+                                        ".$include_class."
+                                        ORDER BY id");
+
 			foreach ($classes as $class) {
 				//Controller
 				$this->createController($class);
@@ -56,21 +79,15 @@ class EditoraCreateMVC extends Command {
 			}
 
 			//Clases sin NICEURL
-			/*            $classes = DB::select("SELECT omp_class_attributes.class_id, omp_classes.name 
-			  FROM omp_class_attributes
-			  JOIN omp_classes ON omp_class_attributes.class_id = omp_classes.id
-			  WHERE class_id
-			  NOT IN (SELECT class_id FROM omp_class_attributes WHERE atri_id = 10002)
-			  GROUP BY class_id");
-			 */
-			$classes = DB::select("select id, name from omp_classes 
-																		where id not in 
-																		(select class_id
-																		from omp_class_attributes ca
-																		where ca.atri_id=10002
-																		group by class_id)
-																		AND id <> 1
-																		ORDER BY id");
+            $classes = DB::select("select id, name from omp_classes 
+                                        where id not in 
+                                        (select class_id
+                                        from omp_class_attributes ca
+                                        where ca.atri_id=10002
+                                        group by class_id)
+                                        AND id <> 1
+                                        ".$include_class."
+                                        ORDER BY id");
 			foreach ($classes as $class) {
 				//View in templates
 				$this->createViewTemplate($class);
