@@ -16,7 +16,7 @@ class EditoraCreateMVC extends Command {
 	 *
 	 * @var string
 	 */
-	protected $signature = 'editora:createmvc {--include_classes=}';
+	protected $signature = 'editora:createmvc {--include_classes=} {--force_overwrite_views} {--force_overwrite_models} {--force_overwrite_controllers} {--force_overwrite_all}';
 
 	/**
 	 * The console command description.
@@ -24,6 +24,9 @@ class EditoraCreateMVC extends Command {
 	 * @var string
 	 */
 	protected $description = 'Create MVC';
+	protected $force_overwrite_views = false;
+	protected $force_overwrite_models = false;
+	protected $force_overwrite_controllers = false;
 
 	/**
 	 * Create a new command instance.
@@ -42,31 +45,49 @@ class EditoraCreateMVC extends Command {
 	public function handle() {
 		if (strcmp(env('APP_ENV'), 'local') == 0) {
 
-		    /* include_class */
-            $arguments = '';
-            $include_class = '';
-            if(!empty($this->option('include_classes'))) {
-                $arguments = $this->option('include_classes');
-                $classes = explode(",", $arguments);
+			if (!empty($this->option('force_overwrite_views'))) {
+				$this->force_overwrite_views = true;
+			}
 
-                foreach ($classes as $key => $class) {
-                    if ($key == 0) {
-                        $include_class .= ' AND id = ' . $class . ' ';
-                    } else {
-                        $include_class .= ' OR id = ' . $class . ' ';
-                    }
-                }
-            }
+			if (!empty($this->option('force_overwrite_models'))) {
+				$this->force_overwrite_models = true;
+			}
 
-            //Classes con NICEURL
-            $classes = DB::select("select id as class_id, name from omp_classes 
+			if (!empty($this->option('force_overwrite_controllers'))) {
+				$this->force_overwrite_controllers = true;
+			}
+
+			if (!empty($this->option('force_overwrite_all'))) {
+				$this->force_overwrite_views = true;
+				$this->force_overwrite_models = true;
+				$this->force_overwrite_controllers = true;
+			}
+
+			/* include_class */
+			$arguments = '';
+			$include_class = '';
+			if (!empty($this->option('include_classes'))) {
+				$arguments = $this->option('include_classes');
+				$classes = explode(",", $arguments);
+
+				foreach ($classes as $key => $class) {
+					if ($key == 0) {
+						$include_class .= ' AND id = ' . $class . ' ';
+					} else {
+						$include_class .= ' OR id = ' . $class . ' ';
+					}
+				}
+			}
+
+			//Classes con NICEURL
+			$classes = DB::select("select id as class_id, name from omp_classes 
                                         where id in 
                                         (select class_id
                                         from omp_class_attributes ca
                                         where ca.atri_id=10002
                                         group by class_id)
                                         AND id <> 1
-                                        ".$include_class."
+                                        " . $include_class . "
                                         ORDER BY id");
 
 			foreach ($classes as $class) {
@@ -79,21 +100,21 @@ class EditoraCreateMVC extends Command {
 			}
 
 			//Clases sin NICEURL
-            $classes = DB::select("select id, name from omp_classes 
+			$classes = DB::select("select id, name from omp_classes 
                                         where id not in 
                                         (select class_id
                                         from omp_class_attributes ca
                                         where ca.atri_id=10002
                                         group by class_id)
                                         AND id <> 1
-                                        ".$include_class."
+                                        " . $include_class . "
                                         ORDER BY id");
 			foreach ($classes as $class) {
 				//View in templates
 				$this->createViewTemplate($class);
 			}
 		} else {
-			print_r('Function only local environment');
+			print_r('Function only available in local environment');
 		}
 
 		echo "Finish \n";
@@ -106,9 +127,10 @@ class EditoraCreateMVC extends Command {
 	public function createController($class) {
 		$replace = [];
 		$file = [];
-		if (!file_exists(app_path().'/Http/Controllers/Editora/')) mkdir(app_path().'/Http/Controllers/Editora/', 0755, true);
+		if (!file_exists(app_path() . '/Http/Controllers/Editora/'))
+			mkdir(app_path() . '/Http/Controllers/Editora/', 0755, true);
 
-		if (!file_exists(app_path() . '/Http/Controllers/Editora/' . $class->name . '.php')) {
+		if (!file_exists(app_path() . '/Http/Controllers/Editora/' . $class->name . '.php') || $this->force_overwrite_controllers) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraController.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraController.stub');
@@ -141,10 +163,11 @@ class EditoraCreateMVC extends Command {
 	public function createModel($class) {
 		$replace = [];
 		$file = [];
-		
-		if (!file_exists(app_path().'/Models/')) mkdir(app_path().'/Models/', 0755, true);
-		
-		if (!file_exists(app_path() . '/Models/' . $class->name . 'Model.php')) {
+
+		if (!file_exists(app_path() . '/Models/'))
+			mkdir(app_path() . '/Models/', 0755, true);
+
+		if (!file_exists(app_path() . '/Models/' . $class->name . 'Model.php') || $this->force_overwrite_models) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraModel.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraModel.stub');
@@ -175,8 +198,9 @@ class EditoraCreateMVC extends Command {
 	public function createView($class) {
 		$replace = [];
 		$file = [];
-		if (!file_exists(base_path().'/resources/views/editora/')) mkdir(base_path().'/resources/views/editora/', 0755, true);
-		if (!file_exists(base_path() . '/resources/views/editora/' . strtolower($class->name) . '.blade.php')) {
+		if (!file_exists(base_path() . '/resources/views/editora/'))
+			mkdir(base_path() . '/resources/views/editora/', 0755, true);
+		if (!file_exists(base_path() . '/resources/views/editora/' . strtolower($class->name) . '.blade.php') || $this->force_overwrite_views) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraView.stub');
@@ -202,8 +226,9 @@ class EditoraCreateMVC extends Command {
 		//Crear VIEW en templates
 		$replace = [];
 		$file = [];
-		if (!file_exists(base_path().'/resources/views/editora/templates/')) mkdir(base_path().'/resources/views/editora/templates/', 0755, true);
-		if (!file_exists(base_path() . '/resources/views/editora/templates/' . strtolower($class->name) . '.blade.php')) {
+		if (!file_exists(base_path() . '/resources/views/editora/templates/'))
+			mkdir(base_path() . '/resources/views/editora/templates/', 0755, true);
+		if (!file_exists(base_path() . '/resources/views/editora/templates/' . strtolower($class->name) . '.blade.php') || $this->force_overwrite_views) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraViewTemplate.stub');
@@ -216,9 +241,9 @@ class EditoraCreateMVC extends Command {
 			} else {
 				echo "Not exist stub view template\n";
 			}
-        } else {
-            echo "Exist " . $class->name . " View Template\n";
-        }
+		} else {
+			echo "Exist " . $class->name . " View Template\n";
+		}
 	}
 
 	/*
