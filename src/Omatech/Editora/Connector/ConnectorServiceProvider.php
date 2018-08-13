@@ -28,6 +28,7 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/Configuration.php' => config_path('editora.php'),
             __DIR__.'/editoradatabase_sample.php' => config_path('editoradatabase.php'),
+            __DIR__.'/base.blade.php' => resource_path('views/base.blade.php'),
         ]);
 
         //Publicamos los controllers
@@ -41,6 +42,7 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Assets/js' => public_path('js'),
             __DIR__.'/Assets/css' => public_path('css'),
             __DIR__.'/Assets/images' => public_path('images'),
+            __DIR__.'/Assets/favicon' => public_path('favicon'),
         ], 'public');
 
         //Rutas
