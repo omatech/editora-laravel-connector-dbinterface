@@ -110,6 +110,10 @@ php artisan editora:createmvc
 
 ```
 --include_classes=1,2,3 generate only this class_ids, comma separated
+--force_overwrite_views
+--force_overwrite_models
+--force_overwrite_controllers
+--force_overwrite_all
 ```
 
 **TBD**
