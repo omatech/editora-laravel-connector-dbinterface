@@ -202,7 +202,7 @@ class EditoraCreateMVC extends Command {
 		//Crear VIEW en templates
 		$replace = [];
 		$file = [];
-		if (!file_exists(app_path().'/resources/views/editora/templates/')) mkdir(app_path().'/resources/views/editora/templates/', 0755, true);
+		if (!file_exists(base_path().'/resources/views/editora/templates/')) mkdir(base_path().'/resources/views/editora/templates/', 0755, true);
 		if (!file_exists(base_path() . '/resources/views/editora/templates/' . strtolower($class->name) . '.blade.php')) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
