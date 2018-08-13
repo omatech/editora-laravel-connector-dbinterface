@@ -34,7 +34,9 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/PreviewController.php' => app_path('Http/Controllers/Editora/PreviewController.php'),
             __DIR__.'/GlobalController.php' => app_path('Http/Controllers/Editora/GlobalController.php'),
+						__DIR__.'/Error404.php' => app_path('Http/Controllers/Editora/Error404.php'),
             __DIR__.'/base.blade.php' => resource_path('views/base.blade.php'),
+            __DIR__.'/404.blade.php' => resource_path('views/404.blade.php'),
             __DIR__.'/package.json' => resource_path('package.json'),
 					
         ]);
