@@ -45,6 +45,11 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Assets/css' => public_path('css'),
             __DIR__.'/Assets/images' => public_path('images'),
             __DIR__.'/Assets/favicon' => public_path('favicon'),
+					
+            __DIR__.'/Assets/markup/fonts' => resource_path('assets/markup/fonts'),
+            __DIR__.'/Assets/markup/img' => resource_path('assets/markup/img'),
+            __DIR__.'/Assets/markup/js' => resource_path('assets/markup/js'),
+            __DIR__.'/Assets/markup/scss' => resource_path('assets/markup/scss'),
         ], 'public');
 
         //Rutas

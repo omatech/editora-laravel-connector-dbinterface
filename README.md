@@ -40,6 +40,26 @@ composer update
 php artisan vendor:publish
 ```
 
+### Put all your markup assets in resources/assets/markup (scss, js, img, fonts,...)
+
+### Overwrite the mix.js call in webpack.mix.js in root folder for this one 
+
+```
+mix.js('resources/assets/js/app.js', 'public/js')
+    .sass('resources/assets/markup/scss/styles.scss', 'public/css/styles.css')
+    .copy('resources/assets/markup/js', 'public/js')
+    .copy('resources/assets/markup/img', 'public/img')
+    .copy('resources/assets/markup/fonts', 'public/fonts')
+    .version();
+```
+
+### Install and run npm
+
+```
+npm install
+npm run dev
+```
+
 ### Remove default route in routes/web.php
 
 ### In config folder there're the two files needed for editora setup editora.php sets the language and different editora options editoradatabase.php sets the editora structure 

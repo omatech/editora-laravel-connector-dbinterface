@@ -72,11 +72,12 @@ class EditoraCreateMVC extends Command {
 
 				foreach ($classes as $key => $class) {
 					if ($key == 0) {
-						$include_class .= ' AND id = ' . $class . ' ';
+						$include_class .= ' AND (id = ' . $class . ' ';
 					} else {
 						$include_class .= ' OR id = ' . $class . ' ';
 					}
 				}
+				$include_class .= ')';
 			}
 
 			//Classes con NICEURL
