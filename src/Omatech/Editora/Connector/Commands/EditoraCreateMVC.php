@@ -106,6 +106,8 @@ class EditoraCreateMVC extends Command {
 	public function createController($class) {
 		$replace = [];
 		$file = [];
+		if (!file_exists(app_path().'/Http/Controllers/Editora/')) mkdir(app_path().'/Http/Controllers/Editora/', 0755, true);
+
 		if (!file_exists(app_path() . '/Http/Controllers/Editora/' . $class->name . '.php')) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraController.stub')) {
@@ -139,6 +141,9 @@ class EditoraCreateMVC extends Command {
 	public function createModel($class) {
 		$replace = [];
 		$file = [];
+		
+		if (!file_exists(app_path().'/Models/')) mkdir(app_path().'/Models/', 0755, true);
+		
 		if (!file_exists(app_path() . '/Models/' . $class->name . 'Model.php')) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraModel.stub')) {
@@ -170,6 +175,7 @@ class EditoraCreateMVC extends Command {
 	public function createView($class) {
 		$replace = [];
 		$file = [];
+		if (!file_exists(app_path().'/resources/views/editora/')) mkdir(app_path().'/resources/views/editora/', 0755, true);
 		if (!file_exists(base_path() . '/resources/views/editora/' . strtolower($class->name) . '.blade.php')) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
@@ -196,6 +202,7 @@ class EditoraCreateMVC extends Command {
 		//Crear VIEW en templates
 		$replace = [];
 		$file = [];
+		if (!file_exists(app_path().'/resources/views/editora/templates/')) mkdir(app_path().'/resources/views/editora/templates/', 0755, true);
 		if (!file_exists(base_path() . '/resources/views/editora/templates/' . strtolower($class->name) . '.blade.php')) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
