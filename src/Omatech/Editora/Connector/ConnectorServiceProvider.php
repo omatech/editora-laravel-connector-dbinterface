@@ -27,14 +27,16 @@ class ConnectorServiceProvider extends ServiceProvider
         //Publicamos el archivo de configuración
         $this->publishes([
             __DIR__.'/Configuration.php' => config_path('editora.php'),
-            __DIR__.'/editoradatabase_sample.php' => config_path('editoradatabase.php'),
-            __DIR__.'/base.blade.php' => resource_path('views/base.blade.php'),
+            __DIR__.'/editoradatabase_sample.php' => config_path('editoradatabase.php')
         ]);
 
         //Publicamos los controllers
         $this->publishes([
             __DIR__.'/PreviewController.php' => app_path('Http/Controllers/Editora/PreviewController.php'),
             __DIR__.'/GlobalController.php' => app_path('Http/Controllers/Editora/GlobalController.php'),
+            __DIR__.'/base.blade.php' => resource_path('views/base.blade.php'),
+            __DIR__.'/package.json' => resource_path('package.json'),
+					
         ]);
 
         //Publicamos los assets
