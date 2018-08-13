@@ -175,7 +175,7 @@ class EditoraCreateMVC extends Command {
 	public function createView($class) {
 		$replace = [];
 		$file = [];
-		if (!file_exists(app_path().'/resources/views/editora/')) mkdir(app_path().'/resources/views/editora/', 0755, true);
+		if (!file_exists(base_path().'/resources/views/editora/')) mkdir(base_path().'/resources/views/editora/', 0755, true);
 		if (!file_exists(base_path() . '/resources/views/editora/' . strtolower($class->name) . '.blade.php')) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
