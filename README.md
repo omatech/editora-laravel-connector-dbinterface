@@ -4,28 +4,41 @@
 
 ### Create the new laravel empty project
 
+```
 composer create-project --prefer-dist laravel/laravel editora-test "5.5.*"
+```
 
-### Setup you .env file
+### Setup you .env file with database connection and so on
 
 ### In the composer.json file add the stability settings in the root of the file and change the name and the description of the project, for example:
 
+```
     "name": "editora-test",
     "description": "Editora Frontend",
 		"minimum-stability": "dev",
 		"prefer-stable": true,
+```
 
 ### Add in require section the editora-laravel-connector-dbinterface: 
 
+```
 "omatech/editora-laravel-connector-dbinterface": "dev-master"
+```
 
 ### Do a composer update
 
+```
+composer update
+```
 
 ### Add a new Provider in config/app.php file
      Omatech\Editora\Connector\ConnectorServiceProvider::class,
 
-### Run: php artisan vendor:publish
+### Publish the new vendor, run: 
+
+```
+php artisan vendor:publish
+```
 
 ### Remove default route in routes/web.php
 
@@ -33,45 +46,54 @@ composer create-project --prefer-dist laravel/laravel editora-test "5.5.*"
 
 ### Modify editoradatabase.php and apply changes running
 
+```
 php artisan editora:create
+```
 
 ### Generate fake content for editora
 
-**_php artisan editora:fakecontent --delete_previous_data_**
+```
+php artisan editora:fakecontent --delete_previous_data
+```
 
-##Commands Laravel
+# Laravel Commands
 
-####- Generator
-Genera de un archivo editoradatabase.php las tablas de la base de datos de la editora.
+## Generator
+Creates the Editora database structure following the rules set in config/editoradatabase.php
 
-**_php artisan editora:create_**
+```
+php artisan editora:create
+```
 
-####- Create MVC
-Crear los archivos Model View Controller de las Clases de Editora (si no existen).
+## CreateMVC
+Create the Model, View and Controller files for the Frontend (if they don't exists)
 
-**_php artisan editora:createmvc_**
+```
+php artisan editora:createmvc
+```
 
-**Argumentos:**
+### Arguments
 
-{--include_classes=}
+```
+--include_classes=1,2,3 generate only this class_ids, comma separated
+```
 
---include_classes generate only this class_ids, comma separated
-
-**Mejoras:**
+**TBD**
 Falta crear argumento de force para borrar si o si las clases.
 
-####- Fake Content
-Crea contenido aleatorio para todas las clases. 
+## Fake Content
+Creates random content for the Editora database. 
 
-**_php artisan editora:fakecontent_**
+```
+php artisan editora:fakecontent
+```
 
-**Ejemplo con argumento:**
+### Arguments
 
+```
 php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 
-**Argumentos:**
-
-{--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {—debug=}
+{--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {—debug} {--delete_previous_data}
 
 --help this help!
 --num_instances number of instance to create for each class
@@ -80,16 +102,19 @@ php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 --pictures_theme generate pictures themed with that word, default:cats you can use abstract, animals, business, cats, city, food, nightlife, fashion, people, nature, sports, technics, transport
 --debug show all sqls (if not present false)
 --delete_previous_data **USE WITH CAUTION**, if set deletes all the previous data before generating the fake data
+```
 
-
-**Mejoras:**
+**TBD**
 Falta añadir contenido aleatorio para algunos atributos (mapas, date,...). 
 
 
-####- Modernize
-Añade la nueva estructura de la editora en la base de datos. (indices, columnas nuevas, batchs_ids, etc)
+## Modernize
+Improves database structure of the editora database, use only in old editoras, not new projects. It creates indexes, new columns added recently like batch_id, external_id and changes to use encrypted passwords
 
-**_php artisan editora:modernize_**
+```
+php artisan editora:modernize
+```
+
 
 
 
