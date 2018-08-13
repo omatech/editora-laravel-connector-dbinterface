@@ -13,7 +13,7 @@ class EditoraFakeContent extends Command
      *
      * @var string
      */
-    protected $signature = 'editora:fakecontent {--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {--debug=} {--delete_previous_data}';
+    protected $signature = 'editora:fakecontent {--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {--debug} {--delete_previous_data}';
 
     /**
      * The console command description.
@@ -54,12 +54,11 @@ class EditoraFakeContent extends Command
                 $arguments .= " --pictures_theme=".$this->option('pictures_theme')." ";
             }
             if(!empty($this->option('debug'))){
-                $arguments .= " --debug=".$this->option('debug')." ";
-            }else{
-                $arguments .= " --debug=false ";
+                $arguments .= " --debug ";
             }
+						
             if(!empty($this->option('delete_previous_data'))){
-                $arguments .= " --delete_previous_data=".$this->option('delete_previous_data')." ";
+                $arguments .= " --delete_previous_data ";
             }
 
             $command = base_path('/vendor/omatech/editora-dbinterface/Commands/fake-content.php');
