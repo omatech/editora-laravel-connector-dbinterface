@@ -56,6 +56,13 @@ php artisan editora:create
 php artisan editora:fakecontent --delete_previous_data
 ```
 
+### Create the MVC structure for the current Editora Structure
+
+```
+php artisan editora:fakecontent --delete_previous_data
+```
+
+
 # Laravel Commands
 
 ## Generator
@@ -64,22 +71,6 @@ Creates the Editora database structure following the rules set in config/editora
 ```
 php artisan editora:create
 ```
-
-## CreateMVC
-Create the Model, View and Controller files for the Frontend (if they don't exists)
-
-```
-php artisan editora:createmvc
-```
-
-### Arguments
-
-```
---include_classes=1,2,3 generate only this class_ids, comma separated
-```
-
-**TBD**
-Falta crear argumento de force para borrar si o si las clases.
 
 ## Fake Content
 Creates random content for the Editora database. 
@@ -106,6 +97,23 @@ php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 
 **TBD**
 Falta añadir contenido aleatorio para algunos atributos (mapas, date,...). 
+
+
+## CreateMVC
+Create the Model, View and Controller files for the Frontend (if they don't exists)
+
+```
+php artisan editora:createmvc
+```
+
+### Arguments
+
+```
+--include_classes=1,2,3 generate only this class_ids, comma separated
+```
+
+**TBD**
+Falta crear argumento de force para borrar si o si las clases.
 
 
 ## Modernize
