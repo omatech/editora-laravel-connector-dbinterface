@@ -61,7 +61,7 @@
                     <button type="button" class="toggle-phone" id="dropdownPhone" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="icon-phone-full"></i>
                     </button>
-                    <span class="number dropdown-menu" aria-labelledby="dropdownPhone">{{_existName($global, 'title_header')}}</span>
+                    <span class="number dropdown-menu" aria-labelledby="dropdownPhone">{{_existAttribute($global, 'title_header')}}</span>
                 </div>
 
                 @generate_edit_link($global)
