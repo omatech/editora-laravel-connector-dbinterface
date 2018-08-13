@@ -37,7 +37,7 @@ composer update
 ### Publish the new vendor, run: 
 
 ```
-php artisan vendor:publish
+php artisan vendor:publish --provider=Omatech\Editora\Connector\ConnectorServiceProvider
 ```
 
 ### Put all your markup assets in resources/assets/markup (scss, js, img, fonts,...)
