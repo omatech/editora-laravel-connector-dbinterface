@@ -13,7 +13,7 @@ class EditoraFakeContent extends Command
      *
      * @var string
      */
-    protected $signature = 'editora:fakecontent {--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {--debug=} {--delete_previous_data=}';
+    protected $signature = 'editora:fakecontent {--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {--debug=} {--delete_previous_data}';
 
     /**
      * The console command description.
@@ -63,7 +63,9 @@ class EditoraFakeContent extends Command
             }
 
             $command = base_path('/vendor/omatech/editora-dbinterface/Commands/fake-content.php');
-            $this->line(shell_exec('php '.$command.' --to=db4 --dbhost='.env('DB_CONNECTION').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').' '.$arguments));
+						$line='php '.$command.' --to=db4 --dbhost='.env('DB_CONNECTION').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').' '.$arguments;
+						echo "Running command: $line\n";
+            $this->line(shell_exec($line));
 
         }else{
             print_r('Function only local environment');

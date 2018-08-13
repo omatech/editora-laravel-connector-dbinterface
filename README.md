@@ -1,30 +1,43 @@
-# Instalación laravel db interface en laravel
+# Installation of a new frontend project using editora-laravel-connector-dbinterface
 
-##Configuración del Laravel
+## Laravel Setup
 
-1- En el fichero composer.json añadir  
-"minimum-stability": "dev", "prefer-stable": true 
+### Create the new laravel empty project
 
-en require: 
+composer create-project --prefer-dist laravel/laravel editora-test "5.5.*"
+
+### Setup you .env file
+
+### In the composer.json file add the stability settings in the root of the file and change the name and the description of the project, for example:
+
+    "name": "editora-test",
+    "description": "Editora Frontend",
+		"minimum-stability": "dev",
+		"prefer-stable": true,
+
+### Add in require section the editora-laravel-connector-dbinterface: 
 
 "omatech/editora-laravel-connector-dbinterface": "dev-master"
 
-2 - hacer un composer update
+### Do a composer update
 
 
-3- Añadir providers en config/app.php
+### Add a new Provider in config/app.php file
      Omatech\Editora\Connector\ConnectorServiceProvider::class,
 
-4- ejecutar: php artisan vendor:publish
-  
-5- Configurar .env
+### Run: php artisan vendor:publish
 
-6- Eliminar ruta por defecto en routes/web.php
+### Remove default route in routes/web.php
 
-7- En el directorio config del laravel existen los ficheros de configuración editora y editoradatabase
+### In config folder there're the two files needed for editora setup editora.php sets the language and different editora options editoradatabase.php sets the editora structure 
 
-8- si modificamos el fichero editoradatabase, podemos regenerar la base de datos con el comando php artisan editora:create
+### Modify editoradatabase.php and apply changes running
 
+php artisan editora:create
+
+### Generate fake content for editora
+
+**_php artisan editora:fakecontent --delete_previous_data_**
 
 ##Commands Laravel
 
