@@ -34,4 +34,20 @@ DummyRelations
 
         return $result;
     }
+
+    public static function findAll($preview, $debug = false, $paginate = null, $url_prefix = null, $url_postfix = null) {
+
+        $classId = DummyClassID;
+        $params = ['debug' => $debug];
+        $extractor = self::extractor($params);
+
+        $result = $extractor->findInstancesInClass($classId, $paginate, $params, function($i) use ($extractor) {
+DummyRelations
+        });
+
+        self::$paginator = $extractor->getPaginator( $url_prefix , $url_postfix);
+
+        return $result;
+    }
+
 }
