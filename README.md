@@ -82,6 +82,45 @@ php artisan editora:fakecontent --delete_previous_data
 php artisan editora:fakecontent --delete_previous_data
 ```
 
+### Clone the editora_admin in another folder, for example editora-test-admin
+```
+cd to your www root folder
+mkdir editora-test-admin
+cd editora-test-admin
+
+git clone https://aponsoma@bitbucket.org/omatechteam/editora_admin.git .
+```
+
+### Copy the config and change the database and folders and urls settings in ompinfo.php (look for # characters to see what to change)
+```
+cd conf
+cp ompinfo_sample.php ompinfo.php
+```
+
+### Double check the HASHED_PASSWORDS, must be 1
+
+
+### Change your virtual hosts to include the admin directory and restart Apache, for example
+
+```
+<VirtualHost *:80>
+	DocumentRoot "/var/www/editora-test/public"
+	ServerName editoratest.localhost
+	<Directory "/var/www/editora-test/public">
+		Allow from all
+		Require all granted
+		AllowOverride All
+	</Directory>   
+
+	Alias /admin "/var/www/editora-test-admin"
+	<Directory "/var/www/editora-test-admin">
+		AllowOverride All
+		Allow from all
+		Require all granted
+
+	</Directory>
+</VirtualHost>
+```
 
 # Laravel Commands
 
