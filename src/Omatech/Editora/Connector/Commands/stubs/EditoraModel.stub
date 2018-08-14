@@ -8,6 +8,8 @@ use Omatech\Editora\Connector\EditoraModel;
 
 class DummyModelClass extends EditoraModel {
 
+    public static $paginator = null;
+
     public static function find($id, $preview, $debug = false) {
 
         $params = ['debug' => $debug];
@@ -31,5 +33,5 @@ DummyRelations
         });
 
         return $result;
-        }
+    }
 }
