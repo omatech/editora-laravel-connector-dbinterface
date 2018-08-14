@@ -27,7 +27,7 @@
 
     <title>{{$global['title']}}</title>
 
-    @if (env('ROBOTS'))
+    @if (App::environment(['local', 'staging', 'dev', 'development'])
         <meta name="robots" content="noindex, nofollow" />
     @endif
     @yield('extra-css')
