@@ -79,12 +79,12 @@ php artisan editora:fakecontent --delete_previous_data
 ### Create the MVC structure for the current Editora Structure
 
 ```
-php artisan editora:fakecontent --delete_previous_data
+php artisan editora:createmvc
 ```
 
 ### Clone the editora_admin in another folder, for example editora-test-admin
 ```
-cd to your www root folder
+cd .. (to your www root folder)
 mkdir editora-test-admin
 cd editora-test-admin
 
