@@ -39,7 +39,7 @@
 </head>
 
 <body class="hide-menu @if(isset($body_class)) {{$body_class}} @endif">
-@if (env('ANALYTICS'))
+@if (!App::environment(['local', 'staging', 'dev', 'development'])
     <script type="text/javascript">
         var _gaq = _gaq || [];
         _gaq.push(['_setAccount', 'UA-XXXX-1']);
