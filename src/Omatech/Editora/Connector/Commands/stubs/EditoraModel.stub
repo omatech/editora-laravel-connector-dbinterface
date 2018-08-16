@@ -35,7 +35,7 @@ DummyRelations
         return $result;
     }
 
-    public static function findAll($preview, $debug = false, $paginate = null, $url_prefix = null, $url_postfix = null) {
+    public static function findAllPaginator($preview, $debug = false, $paginate = null, $url_prefix = null, $url_postfix = null) {
 
         $classId = DummyClassID;
         $params = ['debug' => $debug];
