@@ -136,8 +136,8 @@ class EditoraCreateMVC extends Command {
 			if (file_exists(__DIR__ . '/stubs/EditoraController.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraController.stub');
 
-				$repositoryNamespace = 'App\Http\Controllers\Editora;';
-				$replace["DummyNamespace"] = 'App\Http\Controllers\Editora;';
+				$repositoryNamespace = 'App\Http\Controllers\Editora';
+				$replace["DummyNamespace"] = 'App\Http\Controllers\Editora';
 				$replace["DummyModelClass"] = $class->name . 'Model';
 				$replace["DummyClass"] = $class->name;
 				$replace["DummyLowerCaseClass"] = strtolower($class->name);
