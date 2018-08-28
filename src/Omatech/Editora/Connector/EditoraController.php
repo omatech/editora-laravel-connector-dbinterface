@@ -56,8 +56,10 @@ class EditoraController extends Controller
                 $language = config('editora.defaultLanguage');
             } else {
                 if (config('editora.homeNiceUrl') === true) {
-                    $nice = $this->utils->get_nice_from_id(1, $currentLang);
-                    Redirect::to('/' . $currentLang . '/' . $nice)->send();
+                    //$nice = $this->utils->get_nice_from_id(1, $currentLang);
+                    //Redirect::to('/' . $currentLang . '/' . $nice)->send();
+										$nice=$this->utils->getInstanceLink(1, $currentLang);
+										Redirect::to($nice)->send();
                 } else if (!$language && config('editora.homeNiceUrl') === false) {
                     Redirect::to('/' . $currentLang . '/')->send();
                 }
@@ -67,7 +69,8 @@ class EditoraController extends Controller
         /**
          *
          **/
-        $urlData = $this->utils->get_url_data($currentLang, $nice_url);
+        //$urlData = $this->utils->get_url_data($currentLang, $nice_url);
+        $urlData = $this->utils->getUrlData($currentLang, $nice_url);
 
         /**
          *
@@ -171,7 +174,8 @@ class EditoraController extends Controller
      **/
     private function otherLanguagesMeta($inst_id, $currentLang, $nice_url) {
         $metaLanguages = [];
-        $languages = $this->utils->other_languages_url($inst_id, $currentLang);
+        //$languages = $this->utils->other_languages_url($inst_id, $currentLang);
+        $languages = $this->utils->otherLanguagesUrl($inst_id, $currentLang);
 
         if($languages !== null && $languages !== "") {
             foreach($languages as $language) {
