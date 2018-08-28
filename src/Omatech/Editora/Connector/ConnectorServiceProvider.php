@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Omatech\Editora\Connector\Commands\EditoraModernize;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Loader\Loader;
-use Omatech\Editora\Utils\Editora as Utils;
+//use Omatech\Editora\Utils\Editora as Utils;
+use Omatech\Editora\DBInterfaceBase as Utils;
 use Omatech\Editora\Connector\Commands\EditoraCreate;
 
 use Omatech\Editora\Connector\Commands\EditoraFakeContent;
