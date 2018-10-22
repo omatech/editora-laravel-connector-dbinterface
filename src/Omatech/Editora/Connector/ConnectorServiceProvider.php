@@ -36,7 +36,7 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/PreviewController.php' => app_path('Http/Controllers/Editora/PreviewController.php'),
             __DIR__.'/GlobalController.php' => app_path('Http/Controllers/Editora/GlobalController.php'),
             __DIR__.'/Error404.php' => app_path('Http/Controllers/Editora/Error404.php'),
-            __DIR__.'/base.blade.php' => resource_path('views/base.blade.php'),
+            __DIR__.'/base.blade.php' => resource_path('views/layouts/editora.blade.php'),
             __DIR__.'/404.blade.php' => resource_path('views/editora/404.blade.php'),
             __DIR__.'/package.json' => 'package.json',
             __DIR__.'/pagination_editora.blade.php' => resource_path('views/editora/pagination/pagination_editora.blade.php'),
@@ -47,12 +47,6 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Assets/js' => public_path('js'),
             __DIR__.'/Assets/css' => public_path('css'),
             __DIR__.'/Assets/images' => public_path('images'),
-            __DIR__.'/Assets/favicon' => public_path('favicon'),
-					
-            __DIR__.'/Assets/markup/fonts' => resource_path('assets/markup/fonts'),
-            __DIR__.'/Assets/markup/img' => resource_path('assets/markup/img'),
-            __DIR__.'/Assets/markup/js' => resource_path('assets/markup/js'),
-            __DIR__.'/Assets/markup/scss' => resource_path('assets/markup/scss'),
         ], 'public');
 
         //Rutas

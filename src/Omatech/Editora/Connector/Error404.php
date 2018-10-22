@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Editora;
 
 use App;
-//use App\Models\HomeModel;
+
 use Illuminate\Http\Request;
 use Omatech\Editora\Generator\Generator;
 use Omatech\Editora\Clear\Clear;

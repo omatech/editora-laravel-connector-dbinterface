@@ -1,8 +1,8 @@
 {{--Editora: Create MVC --}}
 
-@extends('base')
+@extends('layouts.editora')
 
-@section('body')
+@section('content')
     <main id="">
 
         @if(isset($instance))

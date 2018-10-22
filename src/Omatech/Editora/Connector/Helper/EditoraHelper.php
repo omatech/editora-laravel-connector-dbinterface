@@ -88,6 +88,32 @@ if (!function_exists('_parsetext')) {
 
 }
 
+if (!function_exists('_parseparagraph')) {
+
+    function _parseparagraph($text, $class = '', $list_class = '') {
+        if ($class != ''){
+            $class = ' class="' . $class . '"';
+        }
+
+        if ($list_class != ''){
+            $list_class = ' class="' . $class . '"';
+        }
+
+        $text = str_replace('<ul>', '</p><ul ' . $list_class . '>', $text);
+        $text = str_replace('</ul>', '</ul><p' . $class . '>', $text);
+
+        $text = str_replace('<ol>', '</p><ol ' . $list_class . '>', $text);
+        $text = str_replace('</ol>', '</ol><p' . $class . '>', $text);
+
+        $text = '<p' . $class . '>'.$text.'</p>';
+        $text = str_replace('<p></p>', '', $text);
+
+        return $text;
+    }
+
+}
+
+
 if (!function_exists('_alttext')) {
 
 	function _alttext($text) {
