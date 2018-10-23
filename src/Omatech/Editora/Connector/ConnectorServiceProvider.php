@@ -25,6 +25,11 @@ class ConnectorServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+
+        if(!isset($_SESSION) || empty($_SESSION) ){
+            session_start(); //Editora Admin Session
+        }
+
         //Publicamos el archivo de configuración
         $this->publishes([
             __DIR__.'/Configuration.php' => config_path('editora.php'),

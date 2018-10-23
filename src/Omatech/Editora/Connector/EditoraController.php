@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
-session_start(); //Editora Admin Session
 
 class EditoraController extends Controller
 {
