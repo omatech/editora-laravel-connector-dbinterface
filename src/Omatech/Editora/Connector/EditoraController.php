@@ -74,7 +74,16 @@ class EditoraController extends Controller
         /**
          *
          **/
-        if($urlData['type'] === "Error") $urlData['class_tag'] = "Error_404";
+        if($urlData['type'] === "Error"){
+
+            if(class_exists('EditoraNotFoundHttpException'))
+            {
+                throw new App\Exceptions\EditoraNotFoundHttpException();
+            }
+
+            $urlData['class_tag'] = "Error_404";
+        }
+
         if(!in_array($language, config('editora.availableLanguages'))) $urlData['class_tag'] = "Error_404";
         /**
          *

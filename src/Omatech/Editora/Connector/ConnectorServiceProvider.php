@@ -54,6 +54,11 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Assets/images' => public_path('images'),
         ], 'public');
 
+        //Publicamos las exceptions
+        $this->publishes([
+            __DIR__.'/Exceptions/EditoraNotFoundHttpException.php' => app_path('Exceptions/EditoraNotFoundHttpException.php'),
+        ]);
+
         //Rutas
         include __DIR__.'/Routes.php';
 
