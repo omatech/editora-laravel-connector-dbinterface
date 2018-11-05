@@ -75,12 +75,6 @@ class EditoraController extends Controller
          *
          **/
         if($urlData['type'] === "Error"){
-
-            if(class_exists('EditoraNotFoundHttpException'))
-            {
-                throw new App\Exceptions\EditoraNotFoundHttpException();
-            }
-
             $urlData['class_tag'] = "Error_404";
         }
 
@@ -88,6 +82,11 @@ class EditoraController extends Controller
         /**
          *
          **/
+        if($urlData['class_tag'] == 'Error_404' && class_exists('App\Exceptions\EditoraNotFoundHttpException'))
+        {
+            throw new App\Exceptions\EditoraNotFoundHttpException();
+        }
+
         $classTag = str_replace('_', '', ucwords($urlData['class_tag'], '_'));
 
         /**
