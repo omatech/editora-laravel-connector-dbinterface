@@ -59,10 +59,10 @@ class EditoraController extends Controller
                     //$nice = $this->utils->get_nice_from_id(1, $currentLang);
                     //Redirect::to('/' . $currentLang . '/' . $nice)->send();
                     $nice = $this->utils->getInstanceLink(1, $currentLang);
-                    Redirect::to($nice)->send();
+                    Redirect::to($nice,301)->send();
                     die;
                 } else if (!$language && config('editora.homeNiceUrl') === false) {
-                    Redirect::to('/' . $currentLang . '/')->send();
+                    Redirect::to('/' . $currentLang . '/',301)->send();
                     die;
                 }
             }
