@@ -58,6 +58,10 @@ $data = array(
 	),
 	'attributes_date' => array(
 	),
+
+	//selector de color
+	'attributes_color' => array(),
+
 	'attributes_num' => array(),
 	'attributes_geolocation' => array(),
 	'attributes_url' => array(
@@ -69,6 +73,7 @@ $data = array(
 	'attributes_video' => array(
 		760 => 'video'
 	),
+    'attributes_multi_lang_video' => array(),
 	'attributes_image' => array(
 		//id=>array(tag, caption_ca, caption_es, caption_en OR id=>tag
 		600 => ['header_picture', 'Imatge capçalera', 'Imágen cabecera', 'Header Picture'],
