@@ -12,7 +12,8 @@ class DummyModelClass extends EditoraModel {
 
     public static function find($id, $preview, $debug = false) {
 
-        $params = ['debug' => $debug];
+        $params = ['debug' => $debug, 'preview' => $preview];
+
         $extractor = self::extractor($params);
 
         $result = $extractor->findInstanceById($id, null, function ($i) use ($extractor){
