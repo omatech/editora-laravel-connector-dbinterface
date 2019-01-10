@@ -35,7 +35,7 @@ class EditoraModel {
 			$params['timings'] = true;
 		}
 		if (!array_key_exists('show_inmediate_debug', $params)) {
-			$params['show_inmediate_debug'] = true;
+			$params['show_inmediate_debug'] = false;
 		}
 
         if (!array_key_exists('debug', $params)) {
