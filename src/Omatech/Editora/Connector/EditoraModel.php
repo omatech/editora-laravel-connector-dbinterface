@@ -39,7 +39,7 @@ class EditoraModel {
 		}
 
         if (!array_key_exists('debug', $params)) {
-            $params['debug'] = env('APP_DEBUG');
+            $params['debug'] = env('APP_DEBUG', false);
         }
 
 		return $params;
