@@ -37,6 +37,11 @@ class EditoraModel {
 		if (!array_key_exists('show_inmediate_debug', $params)) {
 			$params['show_inmediate_debug'] = true;
 		}
+
+        if (!array_key_exists('debug', $params)) {
+            $params['debug'] = env('APP_DEBUG');
+        }
+
 		return $params;
 	}
 	

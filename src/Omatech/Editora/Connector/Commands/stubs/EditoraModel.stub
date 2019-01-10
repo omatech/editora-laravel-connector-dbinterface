@@ -10,13 +10,13 @@ class DummyModelClass extends EditoraModel {
 
     public static $paginator = null;
 
-    public static function find($id, $preview, $debug = false) {
+    public static function find($id, $preview) {
 
-        $params = ['debug' => $debug, 'preview' => $preview];
+        $params = ['preview' => $preview];
 
         $extractor = self::extractor($params);
 
-        $result = $extractor->findInstanceById($id, null, function ($i) use ($extractor){
+        $result = $extractor->findInstanceById($id, $params, function ($i) use ($extractor){
 DummyRelations
         });
 
