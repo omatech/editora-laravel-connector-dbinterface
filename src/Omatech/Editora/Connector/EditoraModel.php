@@ -39,6 +39,11 @@ class EditoraModel {
             $params['debug'] = env('APP_DEBUG', false);
         }
 
+        if (!array_key_exists('default_language_to_remove_from_url', $params)
+            && config('editora.default_language_to_remove_from_url')!==null) {
+            $params['default_language_to_remove_from_url'] = config('editora.default_language_to_remove_from_url');
+        }
+
 		return $params;
 	}
 	
