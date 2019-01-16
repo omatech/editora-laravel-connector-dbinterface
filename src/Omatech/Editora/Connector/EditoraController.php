@@ -63,8 +63,12 @@ class EditoraController extends Controller
                     Redirect::to($nice,301)->send();
                     die;
                 } else if (!$language && config('editora.homeNiceUrl') === false) {
-                    Redirect::to('/' . $currentLang . '/',301)->send();
-                    die;
+                    if (!empty(config('editora.ignoreUrlLanguage')) && config('editora.ignoreUrlLanguage') === true  && $language == null) {
+                        $language = config('editora.defaultLanguage');
+                    }else {
+                        Redirect::to('/' . $currentLang . '/', 301)->send();
+                        die;
+                    }
                 }
             }
         }
