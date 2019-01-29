@@ -15,6 +15,7 @@ use Omatech\Editora\Connector\Commands\EditoraCreate;
 
 use Omatech\Editora\Connector\Commands\EditoraFakeContent;
 use Omatech\Editora\Connector\Commands\EditoraCreateMVC;
+use Omatech\Editora\Connector\Commands\EditoraRemoveContent;
 
 class ConnectorServiceProvider extends ServiceProvider
 {
@@ -110,7 +111,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
         $this->registerHelpers();
 
-        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class]);
+        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraRemoveContent::class]);
     }
 
     /**
