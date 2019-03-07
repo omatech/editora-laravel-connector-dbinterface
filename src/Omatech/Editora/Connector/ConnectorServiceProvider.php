@@ -27,7 +27,7 @@ class ConnectorServiceProvider extends ServiceProvider
     public function boot()
     {
 
-        if(!isset($_SESSION) || empty($_SESSION) ){
+        if((!isset($_SESSION) || empty($_SESSION)) && !in_array(env('APP_ENV'), array('testing', 'test')) ){
             session_start(); //Editora Admin Session
         }
 
