@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
-
 class EditoraController extends Controller
 {
     protected $utils;
@@ -60,13 +59,13 @@ class EditoraController extends Controller
                     //$nice = $this->utils->get_nice_from_id(1, $currentLang);
                     //Redirect::to('/' . $currentLang . '/' . $nice)->send();
                     $nice = $this->utils->getInstanceLink(1, $currentLang);
-                    Redirect::to($nice,301)->send();
+                    Redirect::to($nice, 301)->send();
                     die;
-                } else if (!$language && config('editora.homeNiceUrl') === false) {
+                } elseif (!$language && config('editora.homeNiceUrl') === false) {
                     if (!empty(config('editora.ignoreUrlLanguage')) && config('editora.ignoreUrlLanguage') === true  && $language == null) {
                         $language = config('editora.defaultLanguage');
-                    }else {
-                        Redirect::to('/' . $currentLang . '/', 301)->send();
+                    } else {
+                        Redirect::to('/' . $currentLang . $request->getRequestUri(), 301)->send();
                         die;
                     }
                 }
@@ -86,7 +85,9 @@ class EditoraController extends Controller
             $urlData['class_tag'] = "Error_404";
         }
 
-        if (!in_array($language, config('editora.availableLanguages'))) $urlData['class_tag'] = "Error_404";
+        if (!in_array($language, config('editora.availableLanguages'))) {
+            $urlData['class_tag'] = "Error_404";
+        }
         /**
          *
          **/
@@ -152,10 +153,11 @@ class EditoraController extends Controller
             $x = explode(',', $http_accept);
             foreach ($x as $val) {
                 #check for q-value and create associative array. No q-value means 1 by rule
-                if (preg_match("/(.*);q=([0-1]{0,1}.\d{0,4})/i", $val, $matches))
+                if (preg_match("/(.*);q=([0-1]{0,1}.\d{0,4})/i", $val, $matches)) {
                     $lang[$matches[1]] = (float)$matches[2];
-                else
+                } else {
                     $lang[$val] = 1.0;
+                }
             }
 
             #return default language (highest q-value)
@@ -167,7 +169,9 @@ class EditoraController extends Controller
                 }
             }
             $deflang = explode('-', $deflang);
-            if (is_array($deflang)) $deflang = $deflang[0];
+            if (is_array($deflang)) {
+                $deflang = $deflang[0];
+            }
         }
 
         $lang = (in_array(strtolower($deflang), config('editora.availableLanguages'))) ? strtolower($deflang) : null;
@@ -195,10 +199,11 @@ class EditoraController extends Controller
 
         if ($languages !== null && $languages !== "") {
             foreach ($languages as $language) {
-                if ($nice_url !== null)
+                if ($nice_url !== null) {
                     $url = url()->to('/' . $language['language'] . '/' . $language['niceurl']);
-                else
+                } else {
                     $url = url()->to('/' . $language['language'] . '/');
+                }
 
                 $metaLanguages[$language['language']]['hreflang'] = $language['language'];
                 $metaLanguages[$language['language']]['href'] = $url;
