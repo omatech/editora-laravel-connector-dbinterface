@@ -26,11 +26,6 @@ class ConnectorServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-
-        if((!isset($_SESSION) || empty($_SESSION)) && !in_array(env('APP_ENV'), array('testing', 'test')) ){
-            session_start(); //Editora Admin Session
-        }
-
         //Publicamos el archivo de configuración
         $this->publishes([
             __DIR__.'/Configuration.php' => config_path('editora.php'),
@@ -76,36 +71,39 @@ class ConnectorServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/Configuration.php', 'editora'
+            __DIR__.'/Configuration.php',
+            'editora'
         );
 
 /*        $db = [
-					'dbname' => env('DB_DATABASE'),
-					'user' => env('DB_USERNAME'),
-					'password' => env('DB_PASSWORD'),
-					'host' => env('DB_HOST'),
-					'driver' => 'pdo_mysql',
-					'charset' => 'utf8'
-        ]; 
+                    'dbname' => env('DB_DATABASE'),
+                    'user' => env('DB_USERNAME'),
+                    'password' => env('DB_PASSWORD'),
+                    'host' => env('DB_HOST'),
+                    'driver' => 'pdo_mysql',
+                    'charset' => 'utf8'
+        ];
 */
-				$db=DB::connection()->getDoctrineConnection();
-        $this->app->bind('Extractor', function() use($db) {
+                $db=DB::connection()->getDoctrineConnection();
+        $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);
         });
 
-        $this->app->bind('Utils', function() use ($db) {
+        $this->app->bind('Utils', function () use ($db) {
             return new Utils($db);
         });
-				
-				$this->app->bind('Loader', function() use ($db) {
-            return new Loader($db);
-        });
+                
+                $this->app->bind('Loader', function () use ($db) {
+                    return new Loader($db);
+                });
 
         $laravelVersion = explode('.', $this->app->version());
         $laravelRelease = (int) $laravelVersion[1];
 
         $middlewareMethod = "middleware";
-        if($laravelRelease >= 4) $middlewareMethod = "aliasMiddleware";
+        if ($laravelRelease >= 4) {
+            $middlewareMethod = "aliasMiddleware";
+        }
 
         $this->app['router']->$middlewareMethod('setLocale', 'Omatech\Editora\Connector\Middlewares\SetLocaleMiddleware');
 
@@ -120,14 +118,11 @@ class ConnectorServiceProvider extends ServiceProvider
     public function registerHelpers()
     {
         // Load the helpers in app/Http/helpers.php
-        if (file_exists($file =  __DIR__.'/Helper/EditoraHelper.php'))
-        {
+        if (file_exists($file =  __DIR__.'/Helper/EditoraHelper.php')) {
             require $file;
         }
-        if (file_exists($file =  __DIR__.'/Helper/StaticTextHelper.php'))
-        {
+        if (file_exists($file =  __DIR__.'/Helper/StaticTextHelper.php')) {
             require $file;
         }
     }
-
 }

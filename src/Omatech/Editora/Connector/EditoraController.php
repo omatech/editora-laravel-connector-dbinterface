@@ -44,7 +44,7 @@ class EditoraController extends Controller
         $currentLang = (config('editora.forcedLanguage') !== '') ? config('editora.forcedLanguage') : $currentLang;
 
         session(['locale' => $currentLang]);
-        $_SESSION['u_lang'] = $currentLang;
+        session(['u_lang' => $currentLang]);
         App::setLocale(session('locale'));
 
         /**
@@ -130,7 +130,7 @@ class EditoraController extends Controller
         $preview = false;
 
         if ($req_info !== null && $req_info == 1) {
-            if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != '') {
+            if (session()->has('user_id') && session()->get('user_id') != '') {
                 $preview = true;
             } else {
                 die('Not connected to CMS!');

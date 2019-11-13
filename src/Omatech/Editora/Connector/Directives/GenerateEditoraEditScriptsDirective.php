@@ -1,8 +1,7 @@
 <?php
-    Blade::directive('editora_scripts', function()
-    {
+    Blade::directive('editora_scripts', function () {
         return "<?php
-            if(isset(\$_SESSION[\"rol_id\"]) && \$_SESSION['rol_id'] !== '')
+            if(session()->has('rol_id') && session()->get('rol_id') !== '')
             {
                 echo \Omatech\Editora\Utils\Strings::get_headerEM();
                 echo \Omatech\Editora\Utils\Strings::get_linkEM();
