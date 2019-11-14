@@ -25,11 +25,6 @@ class EditoraController extends Controller
          **/
         $language = $request->route('language');
         $nice_url = $request->route('nice_url');
-        $req_info = $request->input('req_info');
-
-        $preview = $this->editMode($req_info);
-        $request->request->add(['preview' => $preview]);
-        $this->utils->setParams(['preview' => $preview]);
 
         /**
          *
@@ -104,7 +99,7 @@ class EditoraController extends Controller
         $class = new $className;
 
         $class->inst_id = (array_key_exists('id', $urlData)) ? $urlData['id'] : 1;
-        $class->preview = $preview;
+
         $class->utils = $this->utils;
 
         $class->viewData['metaLanguages'] = $this->otherLanguagesMeta($class->inst_id, $currentLang, $nice_url);
@@ -119,6 +114,13 @@ class EditoraController extends Controller
 
     public function init(Request $request)
     {
+        $req_info = $request->input('req_info');
+
+        $preview = $this->editMode($req_info);
+        $request->request->add(['preview' => $preview]);
+        $this->utils->setParams(['preview' => $preview]);
+        $this->class->preview = $preview;
+
         return $this->class->render($request);
     }
 

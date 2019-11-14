@@ -13,28 +13,32 @@
 
 if (config('editora.useFrontendRoutes', true))
 {
-
-Route::group(['middleware' => ['web']], function()
-{
-    $routes = config('editora.routeParams');
-
-    Route::get('/preview/{lang}/{nice_url}', 'App\Http\Controllers\Editora\PreviewController@index');
-
-    foreach($routes as $route)
+    Route::group(['middleware' => ['web']], function()
     {
-        $routeString = '';
+        $routes = config('editora.routeParams');
 
-        foreach($route as $param)
-        {
-            if(preg_match('/::/i', $param)) {
-                $routeString .= '/'.ltrim($param, ':');
-            } else {
-                $routeString .= '/{'.$param.'?}';
-            }
+        $argv = request()->server->get('argv') ?? [];
+
+        if(in_array('artisan', $argv)) {
+            return false;
         }
 
-        Route::get($routeString, 'Omatech\Editora\Connector\EditoraController@init');
-    }
-});
+        Route::get('/preview/{lang}/{nice_url}', 'App\Http\Controllers\Editora\PreviewController@index');
 
+        foreach($routes as $route)
+        {
+            $routeString = '';
+
+            foreach($route as $param)
+            {
+                if(preg_match('/::/i', $param)) {
+                    $routeString .= '/'.ltrim($param, ':');
+                } else {
+                    $routeString .= '/{'.$param.'?}';
+                }
+            }
+
+            Route::get($routeString, 'Omatech\Editora\Connector\EditoraController@init');
+        }
+    });
 }
