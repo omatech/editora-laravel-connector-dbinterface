@@ -82,7 +82,7 @@ if (!function_exists('_parsetext')) {
         }
 
         if ($list_class != ''){
-            $list_class = ' class="' . $class . '"';
+            $list_class = ' class="' . $list_class . '"';
         }
 
         $text = str_replace('<ul>', '</p><ul ' . $list_class . '>', $text);
@@ -91,7 +91,6 @@ if (!function_exists('_parsetext')) {
         $text = str_replace('<ol>', '</p><ol ' . $list_class . '>', $text);
         $text = str_replace('</ol>', '</ol><p' . $class . '>', $text);
 		
-		$text = str_replace('<p></p>', '', $text);
 		return $text;
 	}
 
@@ -105,8 +104,10 @@ if (!function_exists('_parseparagraph')) {
         }
 
         if ($list_class != ''){
-            $list_class = ' class="' . $class . '"';
+            $list_class = ' class="' . $list_class . '"';
         }
+
+        $text = '<p' . $class . '>'.$text.'</p>';
 
         $text = str_replace('<ul>', '</p><ul ' . $list_class . '>', $text);
         $text = str_replace('</ul>', '</ul><p' . $class . '>', $text);
@@ -114,8 +115,8 @@ if (!function_exists('_parseparagraph')) {
         $text = str_replace('<ol>', '</p><ol ' . $list_class . '>', $text);
         $text = str_replace('</ol>', '</ol><p' . $class . '>', $text);
 
-        $text = '<p' . $class . '>'.$text.'</p>';
-        $text = str_replace('<p></p>', '', $text);
+       
+        $text = str_replace('<p' . $class . '></p>', '', $text);
 
         return $text;
     }
