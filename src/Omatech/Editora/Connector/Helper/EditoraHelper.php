@@ -77,12 +77,21 @@ if (!function_exists('_getdate')) {
 if (!function_exists('_parsetext')) {
 
 	function _parsetext($text, $class = '', $list_class = '') {
-		$text = str_replace('<ul>', '</p><ul class="' . $list_class . '">', $text);
-		$text = str_replace('</ul>', '</ul><p class="' . $class . '">', $text);
+		if ($class != ''){
+            $class = ' class="' . $class . '"';
+        }
 
-		$text = str_replace('<ol>', '</p><ol  class="' . $list_class . '">', $text);
-		$text = str_replace('</ol>', '</ol><p class="' . $class . '">', $text);
+        if ($list_class != ''){
+            $list_class = ' class="' . $class . '"';
+        }
 
+        $text = str_replace('<ul>', '</p><ul ' . $list_class . '>', $text);
+        $text = str_replace('</ul>', '</ul><p' . $class . '>', $text);
+
+        $text = str_replace('<ol>', '</p><ol ' . $list_class . '>', $text);
+        $text = str_replace('</ol>', '</ol><p' . $class . '>', $text);
+		
+		$text = str_replace('<p></p>', '', $text);
 		return $text;
 	}
 
