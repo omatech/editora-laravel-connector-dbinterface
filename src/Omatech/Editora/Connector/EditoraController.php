@@ -26,6 +26,13 @@ class EditoraController extends Controller
         $language = $request->route('language');
         $nice_url = $request->route('nice_url');
 
+        $req_info = $request->input('req_info');
+
+        if($req_info==1){
+            $this->utils->setParams(['preview'=>true]);
+        }
+        
+        
         /**
          *
          **/
@@ -71,8 +78,8 @@ class EditoraController extends Controller
          *
          **/
         //$urlData = $this->utils->get_url_data($currentLang, $nice_url);
+        
         $urlData = $this->utils->getUrlData($currentLang, $nice_url);
-
         /**
          *
          **/
