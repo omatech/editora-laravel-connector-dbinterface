@@ -3,7 +3,7 @@
     "description": "",
     "minimum-stability":"dev",
     "require": {
-        "omatech/editora-dbinterface": "dev-master"
+        "omatech/editora-dbinterface": "^1.0"
     },
     "require-dev": {
     },
