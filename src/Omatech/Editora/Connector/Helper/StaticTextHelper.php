@@ -18,4 +18,13 @@ if (!function_exists('_statictext')) {
         $message = new StaticTexts();
         return $message->getOneStaticText($text, $replacements, $locale);
     }
+
+    function _allStatictext($locale = null) {
+        $message = new StaticTexts();
+        if($locale!=null){
+            return $message->todos_lang($locale);
+        }else{
+            return $message->todos();
+        }
+    }
 }

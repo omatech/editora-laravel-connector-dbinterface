@@ -14,7 +14,7 @@ class StaticTexts extends Model {
     protected $table = 'omp_static_text';
 
     public static function todos() {
-        $txt = "";
+        $txt = [];
         $texts = self::where('language', App::getLocale())->get();
 
         foreach($texts as $text) {
@@ -25,7 +25,7 @@ class StaticTexts extends Model {
     }
 
     public static function todos_lang($lang) {
-        $txt = "";
+        $txt = [];
         $texts = self::where('language', $lang)->get();
 
         foreach($texts as $text) {
