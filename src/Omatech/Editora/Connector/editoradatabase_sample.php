@@ -40,7 +40,8 @@ $data = [
                             10002 => ['shortcuts', 'childs'=>'20', 'caption' =>['Accessos directes', 'Accesos directos', 'Shortcuts']],
                             10003 => ['news_highlights', 'childs'=>'21', 'caption' =>['Notícies destacades', 'Notícias destacadas', 'News']],
                         ],
-                        'editable'=>true
+                        'editable'=>true,
+                        'seo_options' =>true,
                     ],
                 ],
             ],
@@ -55,6 +56,7 @@ $data = [
                         'relations' => [
                             20001 => ['blocks', 'childs'=>'30', 'caption' =>['Bloques', 'Bloques', 'Blocks']],
                         ],
+                        'seo_options' =>true,
                     ],
                     21 => [
                         'News',
@@ -64,6 +66,7 @@ $data = [
                             21001 => ['blocks', 'childs'=>'30', 'caption' =>['Bloques', 'Bloques', 'Blocks']],
                             21002 => ['people', 'childs'=>'22', 'caption' =>['Bloques', 'Bloques', 'Blocks']],
                         ],
+                        'seo_options' =>true,
                     ],
                     22 => [
                         'People',
@@ -72,6 +75,7 @@ $data = [
                         'relations' => [
                             22001 => ['blocks', 'childs'=>'30', 'caption' =>['Bloques', 'Bloques', 'Blocks']],
                         ],
+                        'seo_options' =>true,
                     ]
                 ],
             ],
@@ -105,6 +109,7 @@ $data = [
                 ]
             ],
 	],
+    'seo_attributes' => ['900,901,910,911,912,913'],
 
 	'attributes_order_string' => [
 		101 => ['surname', 'caption'=>['Cognoms', 'Apellidos', 'Surname']],
@@ -117,13 +122,20 @@ $data = [
 	],
 	'attributes_multi_lang_string' => [
 		200 => ['title', 'caption'=>['Títol', 'Título', 'Title'], 'description'=>'una prueba de descripción'],
-		201 => ['subtitle', 'caption'=>['Subtítol', 'Subtítulo', 'Subtitle']],
+        201 => ['subtitle', 'caption'=>['Subtítol', 'Subtítulo', 'Subtitle']],
+        
+        910 => ['meta_title', 'caption' => ['Meta Title', 'Meta Title', 'Meta Title']],
+        913 => ['alt_og_image', 'caption' => ['Alt Imatge facebook', 'Alt Imagen facebook', 'Alt facebook image']],
 	],
 	'attributes_textarea' => [
         249 => ['textarea', 'caption'=>['textarea ca', 'textarea es', 'textarea en']],
     ],
     'attributes_multi_lang_textarea' => [
-		250 => ['lang_textarea', 'caption'=>['lang_textarea ca', 'lang_textarea es', 'lang_textarea en']],
+        250 => ['lang_textarea', 'caption'=>['lang_textarea ca', 'lang_textarea es', 'lang_textarea en']],
+        
+
+        911 => ['meta_keywords', 'caption' => ['Meta Keywords', 'Meta Keywords', 'Meta Keywords']],
+        912 => ['meta_description', 'caption' => ['Meta Description', 'Meta Description', 'Meta Description']],
 	],
 	'attributes_text' => [
 		251 => ['text', 'caption'=>['text ca', 'text es', 'text en']],
@@ -165,6 +177,8 @@ $data = [
     ],
     'attributes_image' => [
         601 => ['profile_picture', 'caption' =>['Imatge perfil', 'Imágen perfil', 'Profile picture'], 'params'=>['size'=>['150x200']]],
+
+        901 => ['og_image', 'caption' =>['Imatge facebook', 'Imagen facebook', 'facebook image'], 'params' => ['size' => ['1200x']]],
     ],
     'attributes_multi_lang_image' => [
         602 => ['lang_picture', 'caption' =>['Imatge ', 'Imágen ', 'Profile '], 'params'=>['size'=>['700x200']]],
@@ -177,7 +191,21 @@ $data = [
                 'params'=>['lookup'=>[
                     7001 => ['left', 'Esquerra', 'Izquierda', 'Left'],
                     7002 => ['right', 'Dreta', 'Derecha', 'Right']
-                ]]]
+                ]
+            ]
+        ],
+
+        900 => ['meta_robots',
+            'caption' =>['Meta Robots', 'Meta Robots', 'Meta Robots'],
+            'params' => [
+                'lookup' => [
+                    9001 => ['index,follow', 'index,follow', 'index,follow', 'index,follow'],
+                    9002 => ['noindex,nofollow', 'noindex,nofollow', 'noindex,nofollow', 'noindex,nofollow'],
+                    9003 => ['index,nofollow', 'index,nofollow', 'index,nofollow', 'index,nofollow'],
+                    9004 => ['noindex,follow', 'noindex,follow', 'noindex,follow', 'noindex,follow']
+                ]
+            ]
+        ]
 	],
 
 ];
