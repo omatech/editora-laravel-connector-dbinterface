@@ -2,7 +2,7 @@
 
 namespace DummyNamespace;
 
-use App\Models\DummyModelClass;
+use App\Extractions\DummyModelClass;
 use Illuminate\Http\Request;
 
 class DummyClass extends GlobalController
@@ -13,10 +13,10 @@ class DummyClass extends GlobalController
 
     public function render(Request $request) {
 
-        $ext = DummyModelClass::find($this->inst_id, $this->preview);
-        $this->viewData['instance'] = $ext;
+        $instance = DummyModelClass::find($this->inst_id, $this->preview);
+        $this->viewData['instance'] = $instance;
 
-        return response()->view('editora.DummyLowerCaseClass', $this->viewData);
+        return response()->view('pages.DummyLowerCaseClass', $this->viewData);
     }
 
 }

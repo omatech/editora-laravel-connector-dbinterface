@@ -81,8 +81,8 @@ class EditoraCreateMVC extends Command {
 			}
 
 			//Classes con NICEURL
-			$classes = DB::select("select id as class_id, name from omp_classes 
-                                        where id in 
+			$classes = DB::select("select id as class_id, name from omp_classes
+                                        where id in
                                         (select class_id
                                         from omp_class_attributes ca
                                         where ca.atri_id=10002
@@ -101,8 +101,8 @@ class EditoraCreateMVC extends Command {
 			}
 
 			//Clases sin NICEURL
-			$classes = DB::select("select id, name from omp_classes 
-                                        where id not in 
+			$classes = DB::select("select id, name from omp_classes
+                                        where id not in
                                         (select class_id
                                         from omp_class_attributes ca
                                         where ca.atri_id=10002
@@ -138,7 +138,7 @@ class EditoraCreateMVC extends Command {
 
 				$repositoryNamespace = 'App\Http\Controllers\Editora';
 				$replace["DummyNamespace"] = 'App\Http\Controllers\Editora';
-				$replace["DummyModelClass"] = $class->name . 'Model';
+				$replace["DummyModelClass"] = $class->name . 'Extraction';
 				$replace["DummyClass"] = $class->name;
 				$replace["DummyLowerCaseClass"] = strtolower($class->name);
 
@@ -165,30 +165,30 @@ class EditoraCreateMVC extends Command {
 		$replace = [];
 		$file = [];
 
-		if (!file_exists(app_path() . '/Models/'))
-			mkdir(app_path() . '/Models/', 0755, true);
+		if (!file_exists(app_path() . '/Extractions/'))
+			mkdir(app_path() . '/Extractions/', 0755, true);
 
-		if (!file_exists(app_path() . '/Models/' . $class->name . 'Model.php') || $this->force_overwrite_models) {
+		if (!file_exists(app_path() . '/Extractions/' . $class->name . 'Extraction.php') || $this->force_overwrite_models) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraModel.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraModel.stub');
 
-				$replace["DummyModelClass"] = $class->name . 'Model';
+				$replace["DummyModelClass"] = $class->name . 'Extraction';
 				$replace["DummyRelations"] = $this->getChildrenRelations($class->class_id);
 				$replace["DummyClassID"] = $class->class_id;
 
 				$file = str_replace(array_keys($replace), array_values($replace), $file);
 
-				$file_php = fopen(app_path() . '/Models/' . $class->name . 'Model.php', "w");
+				$file_php = fopen(app_path() . '/Extractions/' . $class->name . 'Extraction.php', "w");
 				fwrite($file_php, $file);
 				fclose($file_php);
 
-				echo("Create " . $class->name . " Model \n");
+				echo("Create " . $class->name . " Extraction \n");
 			} else {
-				echo "Not exist stub model \n";
+				echo "Not exist stub Extraction \n";
 			}
 		} else {
-			echo "Exist " . $class->name . " Model \n";
+			echo "Exist " . $class->name . " Extraction \n";
 		}
 	}
 
@@ -199,14 +199,14 @@ class EditoraCreateMVC extends Command {
 	public function createView($class) {
 		$replace = [];
 		$file = [];
-		if (!file_exists(base_path() . '/resources/views/editora/'))
-			mkdir(base_path() . '/resources/views/editora/', 0755, true);
-		if (!file_exists(base_path() . '/resources/views/editora/' . strtolower($class->name) . '.blade.php') || $this->force_overwrite_views) {
+		if (!file_exists(base_path() . '/resources/views/pages/'))
+			mkdir(base_path() . '/resources/views/pages/', 0755, true);
+		if (!file_exists(base_path() . '/resources/views/pages/' . strtolower($class->name) . '.blade.php') || $this->force_overwrite_views) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraView.stub');
 
-				$file_php = fopen(base_path() . '/resources/views/editora/' . strtolower($class->name) . '.blade.php', "w");
+				$file_php = fopen(base_path() . '/resources/views/pages/' . strtolower($class->name) . '.blade.php', "w");
 				fwrite($file_php, $file);
 				fclose($file_php);
 
@@ -227,14 +227,14 @@ class EditoraCreateMVC extends Command {
 		//Crear VIEW en templates
 		$replace = [];
 		$file = [];
-		if (!file_exists(base_path() . '/resources/views/editora/templates/'))
-			mkdir(base_path() . '/resources/views/editora/templates/', 0755, true);
-		if (!file_exists(base_path() . '/resources/views/editora/templates/' . strtolower($class->name) . '.blade.php') || $this->force_overwrite_views) {
+		if (!file_exists(base_path() . '/resources/views/blocks/'))
+			mkdir(base_path() . '/resources/views/blocks/', 0755, true);
+		if (!file_exists(base_path() . '/resources/views/blocks/' . strtolower($class->name) . '.blade.php') || $this->force_overwrite_views) {
 
 			if (file_exists(__DIR__ . '/stubs/EditoraView.stub')) {
 				$file = file_get_contents(__DIR__ . '/stubs/EditoraViewTemplate.stub');
 
-				$file_php = fopen(base_path() . '/resources/views/editora/templates/' . strtolower($class->name) . '.blade.php', "w");
+				$file_php = fopen(base_path() . '/resources/views/blocks/' . strtolower($class->name) . '.blade.php', "w");
 				fwrite($file_php, $file);
 				fclose($file_php);
 

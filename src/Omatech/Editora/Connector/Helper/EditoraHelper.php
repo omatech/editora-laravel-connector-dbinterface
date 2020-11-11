@@ -196,121 +196,189 @@ if (!function_exists('_get_nice_from_language')) {
 
 if (!function_exists('_getTextCutted')) {
 
-	function _getTextCutted($titol, $caracters = 200, $tags = '') {
-		$titol = strip_tags($titol, $tags);
-		$res = "";
-		$titolx = rtrim($titol, " \t.");
+    function _getTextCutted($titol, $caracters = 200, $tags = ''){
+        $titol = strip_tags($titol, $tags);
+        $res = "";
+        $titolx = rtrim($titol, " \t.");
 
-		if (strlen($titolx) <= $caracters) {
-			$res = $titolx;
+        if (strlen($titolx) <= $caracters) {
+            $res = $titolx;
+        } else {
+            $str = $titol;
+            $limit = $caracters;
+            $very_small_factor = 0.7;
+            $small_factor = 0.4;
+            $large_factor = 0.4;
+            $very_large_factor = 0.6;
+
+            $str = substr($str, 0, $limit + 10);
+            $chars = '*,\',f,i,í,ï,j,l,t,(,)';
+            $chars_arr = explode(',', $chars);
+            $count = 0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if ($char == "*") {
+                    $char = ",";
+                }
+                $count += strlen($str) - strlen(str_replace($char, '', $str));
+            }
+            $very_small = $count;
+
+
+            $str = substr($str, 0, $limit + 10);
+            $chars = 'r,s,z,J,I,Í,Ï, ';
+            $chars_arr = explode(',', $chars);
+            $count = 0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if ($char == "*") {
+                    $char = ",";
+                }
+                $count += strlen($str) - strlen(str_replace($char, '', $str));
+            }
+            $small = $count;
+
+
+            $str = substr($str, 0, $limit + 10);
+            $chars = 'a,b,d,e,g,o,p,q,F,L,P,R,S,T,Y,Z';
+            $chars_arr = explode(',', $chars);
+            $count = 0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if ($char == "*") {
+                    $char = ",";
+                }
+                $count += strlen($str) - strlen(str_replace($char, '', $str));
+            }
+            $large = $count;
+
+            $str = substr($str, 0, $limit + 10);
+            $chars = 'm,w,A,À,Á,B,C,D,E,G,H,K,M,N,Ñ,O,Ò,Ó,Q,U,Ú,Ü,V,W,X';
+            $chars_arr = explode(',', $chars);
+            $count = 0;
+
+            foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
+                if ($char == "*") {
+                    $char = ",";
+                }
+                $count += strlen($str) - strlen(str_replace($char, '', $str));
+            }
+            $very_large = $count;
+
+
+            $limit = $limit + ($very_small * $very_small_factor) + ($small * $small_factor);
+            $limit = $limit - ($large * $large_factor) - ($very_large * $very_large_factor);
+            $caracters = round($limit);
+
+
+            if (strlen($titolx) <= $caracters) { // retorno directament l'string, es prou curt
+                $res = $titolx;
+            } else { // es massa llarg, recorrem l'array i parem quan no pugem mes
+                $arr = explode(" ", $titolx);
+                $cont = 0;
+                foreach ($arr as $paraula) {
+                    if ((strlen($res) + strlen($paraula) + 1) <= $caracters) {
+                        if ($cont != 0) {
+                            $res .= ' ';
+                        }
+                        $res .= $paraula;
+                    } else {
+                        $res .= '...';
+                        break;
+                    }
+                    $cont++;
+                }
+            }
+        }
+
+        return $res;
+    }
+}
+
+if (!function_exists('_existAttribute')) {
+
+	function _existAttribute($instance, $attribute) {
+		if (isset($instance) && isset($instance[$attribute]) && !empty($instance[$attribute])) {
+			return $instance[$attribute];
 		} else {
-			$str = $titol;
-			$limit = $caracters;
-			$very_small_factor = 0.7;
-			$small_factor = 0.4;
-			$large_factor = 0.4;
-			$very_large_factor = 0.6;
-
-			$str = substr($str, 0, $limit + 10);
-			$chars = '*,\',f,i,í,ï,j,l,t,(,)';
-			$chars_arr = explode(',', $chars);
-			$count = 0;
-
-			foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
-				if ($char == "*")
-					$char = ",";
-				$count += strlen($str) - strlen(str_replace($char, '', $str));
-			}
-			$very_small = $count;
-
-
-			$str = substr($str, 0, $limit + 10);
-			$chars = 'r,s,z,J,I,Í,Ï, ';
-			$chars_arr = explode(',', $chars);
-			$count = 0;
-
-			foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
-				if ($char == "*")
-					$char = ",";
-				$count += strlen($str) - strlen(str_replace($char, '', $str));
-			}
-			$small = $count;
-
-
-			$str = substr($str, 0, $limit + 10);
-			$chars = 'a,b,d,e,g,o,p,q,F,L,P,R,S,T,Y,Z';
-			$chars_arr = explode(',', $chars);
-			$count = 0;
-
-			foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
-				if ($char == "*")
-					$char = ",";
-				$count += strlen($str) - strlen(str_replace($char, '', $str));
-			}
-			$large = $count;
-
-			$str = substr($str, 0, $limit + 10);
-			$chars = 'm,w,A,À,Á,B,C,D,E,G,H,K,M,N,Ñ,O,Ò,Ó,Q,U,Ú,Ü,V,W,X';
-			$chars_arr = explode(',', $chars);
-			$count = 0;
-
-			foreach ($chars_arr as $char) { // for each char, lets see the number of occurrences in string
-				if ($char == "*")
-					$char = ",";
-				$count += strlen($str) - strlen(str_replace($char, '', $str));
-			}
-			$very_large = $count;
-
-
-			$limit = $limit + ($very_small * $very_small_factor) + ($small * $small_factor);
-			$limit = $limit - ($large * $large_factor) - ($very_large * $very_large_factor);
-			$caracters = round($limit);
-
-
-			if (strlen($titolx) <= $caracters) { // retorno directament l'string, es prou curt
-				$res = $titolx;
-			} else { // es massa llarg, recorrem l'array i parem quan no pugem mes
-				$arr = explode(" ", $titolx);
-				$cont = 0;
-				foreach ($arr as $paraula) {
-					if ((strlen($res) + strlen($paraula) + 1) <= $caracters) {
-						if ($cont != 0)
-							$res .= ' ';
-						$res .= $paraula;
-					} else {
-						$res .= '...';
-						break;
-					}
-					$cont++;
-				}
-			}
+			return false;
 		}
-
-		return $res;
 	}
 
-	if (!function_exists('_existAttribute')) {
+}
 
-		function _existAttribute($instance, $attribute) {
-			if (isset($instance) && isset($instance[$attribute]) && !empty($instance[$attribute])) {
-				return $instance[$attribute];
-			} else {
-				return false;
-			}
+if (!function_exists('_existRelationName')) {
+
+	function _existRelationName($instance, $relation = null) {
+
+		if (isset($instance) && isset($instance['relations']) && isset($instance['relations'][$relation]) && isset($instance['relations'][$relation]['instances']) && !empty($instance['relations'][$relation]) && !empty($instance['relations'][$relation]['instances'])) {
+			return true;
+		} else {
+			return false;
 		}
-
 	}
 
-	if (!function_exists('_existRelationName')) {
+}
 
-		function _existRelationName($instance, $relation = null) {
+if (!function_exists('_hosturl')) {
+    function _hosturl(){
+        if(isset($_SERVER['HTTPS'])){
+            $protocol = ($_SERVER['HTTPS'] && $_SERVER['HTTPS'] != "off") ? "https" : "http";
+        }else{
+            $protocol = 'http';
+        }
+        return $protocol . "://" . $_SERVER['HTTP_HOST'];
+    }
+}
 
-			if (isset($instance) && isset($instance['relations']) && isset($instance['relations'][$relation]) && isset($instance['relations'][$relation]['instances']) && !empty($instance['relations'][$relation]) && !empty($instance['relations'][$relation]['instances'])) {
-				return true;
-			} else {
-				return false;
-			}
-		}
+if (!function_exists('_fileInfo')) {
+    function _fileInfo($file) {
+        $file_path = public_path().$file;
+        $exists = Storage::disk('editora_public')->exists($file);
+        if (!$exists){
+            return '';
+        }
 
-	}
+        $file_info = pathinfo($file_path);
+        
+        $size = filesize($file_path);
+        $units = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+        $power = $size > 0 ? floor(log($size, 1024)) : 0;
+        $file_size = number_format($size / pow(1024, $power), 2, '.', ',') . '' . $units[$power];
+
+        $extension = strtoupper($file_info['extension']);
+
+
+        return '('.$extension.' '.$file_size.')';
+    }
+}
+
+if (!function_exists('_routeNice')) {
+    function _routeNice($inst_id = null, $lang = null)
+    {
+        if($inst_id == null) return '/'.$lang;
+
+        $url = DB::table(DB::raw("omp_niceurl where inst_id=" . $inst_id . " and language='" . $lang . "'"))->value('niceurl');
+        if (!empty($url)) {
+            return '/' . $lang . '/' . $url;
+        } else{
+            return '/'.$lang;
+        }
+    }
+}
+
+if (!function_exists('_lang')) {
+    function _lang()
+    {
+        return App::getLocale();
+    }
+}
+
+
+if (!function_exists('_altimaginatortext')) {
+    function _altimaginatortext($text) {
+        $text =  strip_tags(str_replace('"', "", $text));
+        return strip_tags(str_replace("'", "", $text));
+    }
+
 }

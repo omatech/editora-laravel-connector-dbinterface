@@ -1,6 +1,6 @@
 {{--Editora: Create MVC --}}
 
-@extends('layouts.editora')
+@extends('layouts.app')
 
 @section('content')
     <main id="">

@@ -1,10 +1,10 @@
-@extends('base')
+@extends('layouts.app')
 
 @section('body')
 <main id="main">
     <div class="container">
         <ul class="breadcrumbs" type="nav">
-            <li><a href="/">{{$global['home']}}</a></li>
+            <li><a href="/">Home</a></li>
             <li>Error 404</li>
         </ul>
         <div class="title-row">

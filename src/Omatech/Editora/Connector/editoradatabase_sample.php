@@ -36,7 +36,7 @@ $data = [
                             //relation_id => [internal name, childs=>id classes, caption=> caption in CAT, ESP, ENG]
                             1001  => ['main_menu', 'childs'=>'20,21,22', 'caption' =>['Menú principal ca', 'Menú principal', 'Main menu']],
                         ],
-                        'editable'=>false //mark as editable class. Default true
+                        'editable'=>false //mark as editable class. Default true. If false users cannot create or delete, only edit
                     ],
                     10 => [//ID from class: Id 10 is reserved from Home class
                         'Home',
