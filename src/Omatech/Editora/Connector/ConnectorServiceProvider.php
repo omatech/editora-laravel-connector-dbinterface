@@ -16,6 +16,8 @@ use Omatech\Editora\Connector\Commands\EditoraCreate;
 use Omatech\Editora\Connector\Commands\EditoraFakeContent;
 use Omatech\Editora\Connector\Commands\EditoraCreateMVC;
 use Omatech\Editora\Connector\Commands\EditoraRemoveContent;
+use Omatech\Editora\Connector\Commands\EditoraRegeneratePasswords;
+use Omatech\Editora\Connector\Commands\EditoraEncryptPasswords;
 
 class ConnectorServiceProvider extends ServiceProvider
 {
@@ -84,7 +86,7 @@ class ConnectorServiceProvider extends ServiceProvider
                     'charset' => 'utf8'
         ];
 */
-                $db=DB::connection()->getDoctrineConnection();
+        $db=DB::connection()->getDoctrineConnection();
         $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);
         });
@@ -92,7 +94,7 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->app->bind('Utils', function () use ($db) {
             return new Utils($db);
         });
-                
+
                 $this->app->bind('Loader', function () use ($db) {
                     return new Loader($db);
                 });
@@ -109,7 +111,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
         $this->registerHelpers();
 
-        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraRemoveContent::class]);
+        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraRemoveContent::class, EditoraRegeneratePasswords::class, EditoraEncryptPasswords::class]);
     }
 
     /**
