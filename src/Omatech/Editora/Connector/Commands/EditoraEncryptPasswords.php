@@ -40,7 +40,7 @@ class EditoraEncryptPasswords extends Command
     {
         $command = base_path('/vendor/omatech/editora-dbinterface/Commands/encrypt-passwords.php');
 
-        $this->line(shell_exec('php '.$command.' --to=db4 --dbhost='.env('DB_CONNECTION').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').''));
+        $this->line(shell_exec('php '.$command.' --to=db4 --dbhost='.env('DB_HOST').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').''));
     }
 
 }

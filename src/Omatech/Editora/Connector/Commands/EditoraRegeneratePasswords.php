@@ -40,7 +40,7 @@ class EditoraRegeneratePasswords extends Command
     {
         $command = base_path('/vendor/omatech/editora-dbinterface/Commands/regenerate-passwords.php');
 
-        $this->line(shell_exec('php '.$command.' --length=10 --to=db4 --dbhost='.env('DB_CONNECTION').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').''));
+        $this->line(shell_exec('php '.$command.' --length=10 --to=db4 --dbhost='.env('DB_HOST').' --dbuser='.env('DB_USERNAME').' --dbpass='.env('DB_PASSWORD').' --dbname='.env('DB_DATABASE').''));
     }
 
 }
