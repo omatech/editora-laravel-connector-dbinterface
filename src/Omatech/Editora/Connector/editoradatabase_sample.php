@@ -154,7 +154,15 @@ $data = [
     ],
     'attributes_multi_lang_text' => [
 		280 => ['lang_text', 'caption'=>['lang_text ca', 'lang_text es', 'lang_text en']],
-	],
+    ],
+    
+    'attributes_json' => [
+    ],
+    'attributes_multi_json' => [
+        151 => ['json', 'caption'=>['Json', 'Json', 'Json'], 'params' => ['only_root'=>true]],//only_root params hide attribute for other users
+    ],
+
+
 	'attributes_date' => [
         252 => ['date', 'caption'=>['date ca', 'date es', 'date en']],
 	],
