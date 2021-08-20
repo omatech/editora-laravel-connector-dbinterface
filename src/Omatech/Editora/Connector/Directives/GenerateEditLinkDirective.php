@@ -3,6 +3,7 @@
         if (!isset($instance['metadata']['id']) || !isset($instance['metadata']['class_id'])) {
             return '';
         }
+        
         $instanceId = $instance."['metadata']['id']";
         $classId = $instance."['metadata']['class_id']";
         $php = "<?php
