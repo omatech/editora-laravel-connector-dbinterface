@@ -23,7 +23,7 @@ if (config('editora.useFrontendRoutes', true))
             return false;
         }
 
-        Route::get('/preview/{lang}/{nice_url}', 'App\Http\Controllers\Editora\PreviewController@index');
+        Route::get('/preview/{lang}/{nice_url}', config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\').'PreviewController@index');
 
         foreach($routes as $route)
         {

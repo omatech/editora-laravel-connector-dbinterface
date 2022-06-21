@@ -3,7 +3,7 @@
 namespace Omatech\Editora\Connector;
 
 use App;
-use App\Http\Controllers\Controller;
+use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
@@ -93,8 +93,9 @@ class EditoraController extends Controller
         /**
          *
          **/
-        if ($urlData['class_tag'] == 'Error_404' && class_exists('App\Exceptions\EditoraNotFoundHttpException')) {
-            throw new App\Exceptions\EditoraNotFoundHttpException();
+        $exception = config('editora.notFoundHttpException', 'App\Exceptions\EditoraNotFoundHttpException');
+        if ($urlData['class_tag'] == 'Error_404' && class_exists($exception)) {
+            throw new $exception;
         }
 
         $classTag = str_replace('_', '', ucwords($urlData['class_tag'], '_'));
@@ -102,7 +103,7 @@ class EditoraController extends Controller
         /**
          *
          **/
-        $className = 'App\\Http\\Controllers\\Editora\\' . $classTag;
+        $className = config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\') . $classTag;
         $class = new $className;
 
         $class->inst_id = (array_key_exists('id', $urlData)) ? $urlData['id'] : 1;

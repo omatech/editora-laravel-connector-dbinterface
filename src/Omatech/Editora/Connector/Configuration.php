@@ -22,7 +22,8 @@ return [
     'forcedLanguage'     => '',
     'adminAlias'         => 'admin',
     'middlewares'        => [],
-    'extractNullValues'  => true,
-		'useFrontendRoutes' => true // set this flag to false if you want to avoid automatic Editora Route interpretation
+    'useFrontendRoutes' => true, // set this flag to false if you want to avoid automatic Editora Route interpretation
+    'controllersNamespace' => 'App\\Http\\Controllers\\Editora\\',
+    'notFoundHttpException' => 'App\Exceptions\EditoraNotFoundHttpException',
 ];
 
