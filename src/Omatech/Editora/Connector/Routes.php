@@ -19,7 +19,7 @@ if (config('editora.useFrontendRoutes', true))
 
         $argv = request()->server->get('argv') ?? [];
 
-        if(in_array('artisan', $argv)) {
+        if(in_array('artisan', $argv) && !in_array('optimize', $argv)) {
             return false;
         }
 

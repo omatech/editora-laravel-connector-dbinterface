@@ -14,6 +14,8 @@ class EditoraController extends Controller
 
     public function __construct(Request $request)
     {
+        if(app()->runningInConsole()) return false;
+        
         $this->utils = App::make('Utils');
 
         if (!empty(config('editora.middlewares')) && count(config('editora.middlewares'))) {
@@ -31,8 +33,8 @@ class EditoraController extends Controller
         if($req_info==1){
             $this->utils->setParams(['preview'=>true]);
         }
-        
-        
+
+
         /**
          *
          **/
@@ -78,7 +80,7 @@ class EditoraController extends Controller
          *
          **/
         //$urlData = $this->utils->get_url_data($currentLang, $nice_url);
-        
+
         $urlData = $this->utils->getUrlData($currentLang, $nice_url);
         /**
          *
