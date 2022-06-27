@@ -5,7 +5,7 @@
 ### Create the new laravel empty project
 
 ```
-composer create-project --prefer-dist laravel/laravel editora-test "5.5.*"
+composer create-project --prefer-dist laravel/laravel editora-test
 ```
 
 ### Setup you .env file with database connection and so on
@@ -15,14 +15,8 @@ composer create-project --prefer-dist laravel/laravel editora-test "5.5.*"
 ```
     "name": "editora-test",
     "description": "Editora Frontend",
-		"minimum-stability": "dev",
-		"prefer-stable": true,
-```
-
-### Add in require section the editora-laravel-connector-dbinterface: 
-
-```
-"omatech/editora-laravel-connector-dbinterface": "dev-master"
+	"minimum-stability": "dev",
+	"prefer-stable": true,
 ```
 
 ### Do a composer update
@@ -30,9 +24,6 @@ composer create-project --prefer-dist laravel/laravel editora-test "5.5.*"
 ```
 composer update
 ```
-
-### Add a new Provider in config/app.php file
-     Omatech\Editora\Connector\ConnectorServiceProvider::class,
 
 ### Publish the new vendor, run: 
 
@@ -60,7 +51,12 @@ npm install
 npm run dev
 ```
 
-### Remove default route in routes/web.php
+### Add editora routes in routes/web.php
+```
+use Omatech\Editora\Connector\Editora;
+
+Editora::routes();
+```
 
 ### In config folder there're the two files needed for editora setup editora.php sets the language and different editora options editoradatabase.php sets the editora structure 
 
@@ -132,7 +128,7 @@ php artisan editora:create
 ```
 
 ## Fake Content
-Creates random content for the Editora database. 
+Creates random content for the Editora database.
 
 ```
 php artisan editora:fakecontent
@@ -155,7 +151,7 @@ php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 ```
 
 **TBD**
-Falta añadir contenido aleatorio para algunos atributos (mapas, date,...). 
+Falta añadir contenido aleatorio para algunos atributos (mapas, date,...).
 
 
 ## CreateMVC

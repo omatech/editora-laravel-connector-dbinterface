@@ -2,14 +2,11 @@
 
 namespace Omatech\Editora\Connector;
 
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\DB;
 use Omatech\Editora\Connector\Commands\EditoraModernize;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Loader\Loader;
-//use Omatech\Editora\Utils\Editora as Utils;
 use Omatech\Editora\DBInterfaceBase as Utils;
 use Omatech\Editora\Connector\Commands\EditoraCreate;
 
@@ -41,7 +38,6 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Error404.php' => app_path('Http/Controllers/Editora/Error404.php'),
             __DIR__.'/base.blade.php' => resource_path('views/layouts/app.blade.php'),
             __DIR__.'/404.blade.php' => resource_path('views/errors/404.blade.php'),
-            //__DIR__.'/package.json' => 'package.json',
             __DIR__.'/pagination_editora.blade.php' => resource_path('views/components/pagination_editora.blade.php'),
         ]);
 
@@ -56,9 +52,6 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/Exceptions/EditoraNotFoundHttpException.php' => app_path('Exceptions/EditoraNotFoundHttpException.php'),
         ]);
-
-        //Rutas
-        include __DIR__.'/Routes.php';
 
         //Directivas de Blade
         include __DIR__.'/Directives/GenerateEditLinkDirective.php';
@@ -77,15 +70,6 @@ class ConnectorServiceProvider extends ServiceProvider
             'editora'
         );
 
-/*        $db = [
-                    'dbname' => env('DB_DATABASE'),
-                    'user' => env('DB_USERNAME'),
-                    'password' => env('DB_PASSWORD'),
-                    'host' => env('DB_HOST'),
-                    'driver' => 'pdo_mysql',
-                    'charset' => 'utf8'
-        ];
-*/
         $db=DB::connection()->getDoctrineConnection();
         $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);
@@ -95,9 +79,9 @@ class ConnectorServiceProvider extends ServiceProvider
             return new Utils($db);
         });
 
-                $this->app->bind('Loader', function () use ($db) {
-                    return new Loader($db);
-                });
+        $this->app->bind('Loader', function () use ($db) {
+            return new Loader($db);
+        });
 
         $laravelVersion = explode('.', $this->app->version());
         $laravelRelease = (int) $laravelVersion[1];

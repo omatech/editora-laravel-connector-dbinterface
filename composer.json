@@ -11,5 +11,12 @@
         "psr-4": {
             "Omatech\\": "src/Omatech"
         }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Omatech\\Editora\\Connector\\ConnectorServiceProvider"
+            ]
+        }
     }
 }
