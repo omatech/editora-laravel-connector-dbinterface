@@ -197,7 +197,11 @@ class EditoraController extends Controller
     private function getLanguageFromSession($currentLang)
     {
         $language = (session('locale') !== null) ? session('locale') : $currentLang;
-        return strtolower($language);
+        if ($language)
+        {
+            return strtolower($language);
+        }
+        return null;
     }
 
     /**
