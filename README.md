@@ -141,7 +141,6 @@ php artisan editora:fakecontent --exclude_classes=1,10,11,12,13
 
 {--num_instances=} {--include_classes=} {--exclude_classes=} {--pictures_theme=} {—debug} {--delete_previous_data}
 
---help this help!
 --num_instances number of instance to create for each class
 --include_classes generate only this class_ids, comma separated
 --exclude_classes generate all but this class_ids, comma separated
@@ -159,6 +158,10 @@ Create the Model, View and Controller files for the Frontend (if they don't exis
 
 ```
 php artisan editora:createmvc
+
+--include_classes generate only this class_ids, comma separated
+--exclude_classes generate all but this class_ids, comma separated
+--old_school_controllers allow generation of old_school_controllers instead of new ones
 ```
 
 ### Arguments
