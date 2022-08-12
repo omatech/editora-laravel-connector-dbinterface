@@ -1,0 +1,16 @@
+<?php
+
+namespace DummyNamespace;
+
+use App\Extractions\DummyModelClass;
+use Illuminate\Http\Request;
+
+class DummyClass extends GlobalController
+{
+    protected $view = 'pages.DummyLowerCaseClass';
+
+    public function extract()
+    {
+        $this->viewData['instance'] = DummyModelClass::find($this->inst_id, $this->preview);
+    }
+}

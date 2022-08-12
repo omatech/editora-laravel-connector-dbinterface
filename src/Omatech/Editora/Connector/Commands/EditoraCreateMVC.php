@@ -16,7 +16,7 @@ class EditoraCreateMVC extends Command {
 	 *
 	 * @var string
 	 */
-	protected $signature = 'editora:createmvc {--include_classes=} {--force_overwrite_views} {--force_overwrite_models} {--force_overwrite_controllers} {--force_overwrite_all}';
+	protected $signature = 'editora:createmvc {--include_classes=} {--exclude_classes=} {--old_school_controllers} {--force_overwrite_views} {--force_overwrite_models} {--force_overwrite_controllers} {--force_overwrite_all}';
 
 	/**
 	 * The console command description.
@@ -27,6 +27,7 @@ class EditoraCreateMVC extends Command {
 	protected $force_overwrite_views = false;
 	protected $force_overwrite_models = false;
 	protected $force_overwrite_controllers = false;
+	protected $old_school_controllers = false;
 
 	/**
 	 * Create a new command instance.
@@ -51,6 +52,10 @@ class EditoraCreateMVC extends Command {
 
 			if (!empty($this->option('force_overwrite_models'))) {
 				$this->force_overwrite_models = true;
+			}
+
+			if (!empty($this->option('old_school_controllers'))) {
+				$this->old_school_controllers = true;
 			}
 
 			if (!empty($this->option('force_overwrite_controllers'))) {
@@ -80,6 +85,14 @@ class EditoraCreateMVC extends Command {
 				$include_class .= ')';
 			}
 
+			/* exclude_class */
+			$arguments = '';
+			$exclude_class = '';
+			if (!empty($this->option('exclude_classes'))) {
+				$arguments = $this->option('exclude_classes');
+				$exclude_class.=" and id not in ($arguments)";
+			}			
+
 			//Classes con NICEURL
 			$classes = DB::select("select id as class_id, name from omp_classes
                                         where id in
@@ -89,6 +102,7 @@ class EditoraCreateMVC extends Command {
                                         group by class_id)
                                         AND id <> 1
                                         " . $include_class . "
+                                        " . $exclude_class . "
                                         ORDER BY id");
 
 			foreach ($classes as $class) {
@@ -109,6 +123,7 @@ class EditoraCreateMVC extends Command {
                                         group by class_id)
                                         AND id <> 1
                                         " . $include_class . "
+																				" . $exclude_class . "
                                         ORDER BY id");
 			foreach ($classes as $class) {
 				//View in templates
@@ -128,13 +143,20 @@ class EditoraCreateMVC extends Command {
 	public function createController($class) {
 		$replace = [];
 		$file = [];
+
+		$stub='/stubs/EditoraController.20220812.stub';
+		if ($this->old_school_controllers)
+		{
+			$stub='/stubs/EditoraController.stub';
+		}
+
 		if (!file_exists(app_path() . '/Http/Controllers/Editora/'))
 			mkdir(app_path() . '/Http/Controllers/Editora/', 0755, true);
 
 		if (!file_exists(app_path() . '/Http/Controllers/Editora/' . $class->name . '.php') || $this->force_overwrite_controllers) {
 
-			if (file_exists(__DIR__ . '/stubs/EditoraController.stub')) {
-				$file = file_get_contents(__DIR__ . '/stubs/EditoraController.stub');
+			if (file_exists(__DIR__ . $stub)) {
+				$file = file_get_contents(__DIR__ . $stub);
 
 				$repositoryNamespace = 'App\Http\Controllers\Editora';
 				$replace["DummyNamespace"] = 'App\Http\Controllers\Editora';
