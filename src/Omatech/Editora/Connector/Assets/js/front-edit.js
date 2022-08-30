@@ -1,19 +1,27 @@
-function toggleEdit(elem){
-	if($(elem).text()=="Edit mode: ON"){
-		$(elem).text("Edit mode: OFF");
-		$(".front-edit").hide();
-		$(".front-edit-relative").hide();
-	}
-	else{
-		$(elem).text("Edit mode: ON");
-		$(".front-edit").show();
-		$(".front-edit-relative").show();
-        $("#header .menu_nav li a img .edit_img ").show();
-        $(".submenu li a img .edit_img ").show();
-	}
+let editNodes = document.querySelectorAll(".front-edit");
+let editNodesRelative = document.querySelectorAll(".front-edit-relative");
+
+function toggleEdit(elem) {
+    if(elem.innerText === "Edit mode: ON"){
+        elem.innerText = "Edit mode: OFF";
+        if(editNodes) {
+            editNodes.forEach(node => node.style.display = "none");
+            editNodesRelative.forEach(node => node.style.display = "none");
+        }
+    } else {
+        elem.innerText = "Edit mode: ON";
+        if(editNodes) {
+            editNodes.forEach(node => node.style.display = "block");
+            editNodesRelative.forEach(node => node.style.display = "block");
+            document.querySelector("#header .menu_nav li a img .edit_img ").style.display = "block";
+            document.querySelector(".submenu li a img .edit_img ").style.display = "block";
+        }
+    }
 }
 
 function toggleStart() {
-	$(".front-edit").hide();
-	$(".front-edit-relative").hide();
+    if(editNodes) {
+        editNodes.forEach(node => node.style.display = "none");
+        editNodesRelative.forEach(node => node.style.display = "none");
+    }
 }
