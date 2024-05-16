@@ -70,7 +70,22 @@ class ConnectorServiceProvider extends ServiceProvider
             'editora'
         );
 
-        $db=DB::connection()->getDoctrineConnection();
+        if (method_exists(DB::connection(), 'getDoctrineConnection')) {
+            $db=DB::connection()->getDoctrineConnection();
+        } else {
+            /* $db = new PDO("mysql:host=".env('DB_HOST', '').";dbname=".env('DB_DATABASE', '')."", env('DB_USERNAME', ''), env('DB_PASSWORD', '')); */
+            $conn = config('database.connections.mysql');
+            $connection_params = [
+                'dbname' => env('DB_DATABASE', ''),
+                'user' => $conn['username'],
+                'password' => env('DB_PASSWORD', ''),
+                'host' => env('DB_HOST', ''),
+                'driver' => 'pdo_mysql',
+                'charset' => 'utf8',
+            ];
+            $db = DriverManager::getConnection($connection_params);
+        }
+
         $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);
         });
