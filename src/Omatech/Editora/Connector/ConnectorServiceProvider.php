@@ -70,7 +70,12 @@ class ConnectorServiceProvider extends ServiceProvider
             'editora'
         );
 
-        $db=DB::connection()->getDoctrineConnection();
+        if (method_exists(DB::connection(), 'getDoctrineConnection')) {
+            $db=DB::connection()->getDoctrineConnection();
+        } else {
+            $db = DB::connection()->getConfig();
+            $db = $this->toDoctrineDB($db);
+        }
         $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);
         });
@@ -96,6 +101,26 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->registerHelpers();
 
         $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraRemoveContent::class, EditoraRegeneratePasswords::class, EditoraEncryptPasswords::class]);
+    }
+
+    private function toDoctrineDB($config)
+    {
+        $driverSchemeAliases = [
+            'mysql'      => 'pdo_mysql',
+            'mariadb'    => 'pdo_mysql',
+            'postgres'   => 'pdo_pgsql',
+            'sqlite'     => 'pdo_sqlite',
+            'sqlsrv'     => 'pdo_sqlsrv',
+        ];
+
+        $config['driver'] = $driverSchemeAliases[$config['driver']] ?? $config['driver'];
+        $config['user'] = $config['username'];
+        $config['dbname'] = $config['database'];
+        if($config['unix_socket'] ?? false) {
+            unset($config['host']);
+        }
+
+        return $config;
     }
 
     /**
