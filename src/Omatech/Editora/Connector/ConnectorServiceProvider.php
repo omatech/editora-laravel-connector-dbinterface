@@ -58,6 +58,26 @@ class ConnectorServiceProvider extends ServiceProvider
         include __DIR__.'/Directives/GenerateEditoraEditScriptsDirective.php';
     }
 
+    private function toDoctrineDB($config)
+    {
+        $driverSchemeAliases = [
+            'mysql'    => 'pdo_mysql',
+            'mariadb'  => 'pdo_mysql',
+            'postgres' => 'pdo_pgsql',
+            'sqlite'   => 'pdo_sqlite',
+            'sqlsrv'   => 'pdo_sqlsrv',
+        ];
+        
+        $config['driver'] = $driverSchemeAliases[$config['driver']] ?? $config['driver'];
+        $config['user'] = $config['username'];
+        $config['dbname'] = $config['database'];
+        $config['driverOptions'] = $config['options'] ?? [];
+        if($config['unix_socket'] ?? false) {
+            unset($config['host']);
+        }
+        return $config;
+    }
+
     /**
      * Register the application services.
      *
@@ -70,7 +90,9 @@ class ConnectorServiceProvider extends ServiceProvider
             'editora'
         );
 
-        $db=DB::connection()->getDoctrineConnection();
+        $db = DB::connection()->getConfig();
+        $db = $this->toDoctrineDB($db);
+
         $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);
         });
