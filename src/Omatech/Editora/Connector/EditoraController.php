@@ -109,6 +109,7 @@ class EditoraController extends Controller
         $class = new $className;
 
         $class->inst_id = (array_key_exists('id', $urlData)) ? $urlData['id'] : 1;
+        $class->nice_url = $nice_url;
 
         $class->utils = $this->utils;
 
