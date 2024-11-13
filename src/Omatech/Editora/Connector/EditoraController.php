@@ -72,6 +72,8 @@ class EditoraController extends Controller
                         Redirect::to('/' . $currentLang . $request->getRequestUri(), 301)->send();
                         die;
                     }
+                } elseif ($language && config('editora.homeNiceUrl') === false) {
+                    $nice_url = 'home';
                 }
             }
         }
