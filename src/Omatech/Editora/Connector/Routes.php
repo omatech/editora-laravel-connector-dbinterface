@@ -38,7 +38,11 @@ if (config('editora.useFrontendRoutes', true))
                 }
             }
 
-            Route::get($routeString, 'Omatech\Editora\Connector\EditoraController@init');
+            $editoraRoute = Route::get($routeString, 'Omatech\Editora\Connector\EditoraController@init');
+
+            if (config('editora.fullNiceUrlInterpretation')) {
+                $editoraRoute->where('nice_url', '.*');
+            }
         }
     });
 }
