@@ -69,7 +69,7 @@ class ConnectorServiceProvider extends ServiceProvider
         ];
         
         $config['driver'] = $driverSchemeAliases[$config['driver']] ?? $config['driver'];
-        $config['user'] = $config['username'];
+        $config['user'] = $config['username'] ?? '';
         $config['dbname'] = $config['database'];
         $config['driverOptions'] = $config['options'] ?? [];
         if($config['unix_socket'] ?? false) {
