@@ -66,6 +66,12 @@ Editora::routes();
 php artisan editora:create
 ```
 
+### Check if editoradatabase is changed
+
+```
+php artisan editora:databasechanged
+```
+
 ### Generate fake content for editora
 
 ```

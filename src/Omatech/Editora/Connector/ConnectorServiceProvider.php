@@ -12,6 +12,7 @@ use Omatech\Editora\Connector\Commands\EditoraCreate;
 
 use Omatech\Editora\Connector\Commands\EditoraFakeContent;
 use Omatech\Editora\Connector\Commands\EditoraCreateMVC;
+use Omatech\Editora\Connector\Commands\EditoraDatabaseChanged;
 use Omatech\Editora\Connector\Commands\EditoraRemoveContent;
 use Omatech\Editora\Connector\Commands\EditoraRegeneratePasswords;
 use Omatech\Editora\Connector\Commands\EditoraEncryptPasswords;
@@ -117,7 +118,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
         $this->registerHelpers();
 
-        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraRemoveContent::class, EditoraRegeneratePasswords::class, EditoraEncryptPasswords::class]);
+        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraDatabaseChanged::class, EditoraRemoveContent::class, EditoraRegeneratePasswords::class, EditoraEncryptPasswords::class]);
     }
 
     /**
