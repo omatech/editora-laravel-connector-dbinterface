@@ -64,7 +64,7 @@ class ConnectorServiceProvider extends ServiceProvider
         $driverSchemeAliases = [
             'mysql'    => 'pdo_mysql',
             'mariadb'  => 'pdo_mysql',
-            'postgres' => 'pdo_pgsql',
+            'pgsql' => 'pdo_pgsql',
             'sqlite'   => 'pdo_sqlite',
             'sqlsrv'   => 'pdo_sqlsrv',
         ];
