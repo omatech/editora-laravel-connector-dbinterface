@@ -50,7 +50,7 @@ class StaticTexts extends Model {
             return $staticText;
 
         } catch (\Illuminate\Database\QueryException $e) {
-            dump($e);
+            report($e);
             return "error_database";
         }
 
