@@ -6,6 +6,6 @@ class Editora
 {
     public static function routes(): void
     {
-        include_once __DIR__.'/Routes.php';
+        require __DIR__.'/Routes.php';
     }
 }
