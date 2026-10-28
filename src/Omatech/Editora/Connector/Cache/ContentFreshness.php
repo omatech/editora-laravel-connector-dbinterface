@@ -7,6 +7,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
 use LogicException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -42,8 +43,14 @@ final class ContentFreshness
     {
         $app->singleton(self::class, fn ($app) => new self($app['cache']->store(config('editora-cache.content.store'))));
         $app['events']->listen(QueryExecuted::class, function (QueryExecuted $query) use ($app): void {
-            if ($app['request']->route()?->getControllerClass() === self::ADMIN && self::changesPublicContent($query->sql)) {
+            if ($app['request']->route()?->getControllerClass() !== self::ADMIN || !self::changesPublicContent($query->sql)) {
+                return;
+            }
+            try {
                 $app->make(self::class)->published();
+            } catch (Throwable $e) {
+                // The admin's write is already committed and the rest of its statements must still run.
+                report($e);
             }
         });
     }
@@ -68,10 +75,7 @@ final class ContentFreshness
         return $request->attributes->get(self::KEY);
     }
 
-    /**
-     * Records a publication now, at most once per second and request. A failure is reported, not thrown: the
-     * admin's write is already committed and the rest of its statements must still run.
-     */
+    /** Records a publication now, at most once per second and request; a failure throws. */
     public function published(): void
     {
         if ($this->store === null) {
@@ -81,12 +85,10 @@ final class ContentFreshness
         if (request()->attributes->get(self::KEY) === $now) {
             return;
         }
-        try {
-            $this->store->forever(self::KEY, $now);
-            request()->attributes->set(self::KEY, $now);
-        } catch (Throwable $e) {
-            report($e);
+        if (!$this->store->forever(self::KEY, $now)) {
+            throw new RuntimeException('The publication could not be recorded.');
         }
+        request()->attributes->set(self::KEY, $now);
     }
 
     /** Freshness window for content cached for $ttl seconds: nothing cached up to the last publication is fresh. */

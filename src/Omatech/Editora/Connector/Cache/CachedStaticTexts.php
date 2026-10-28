@@ -4,14 +4,15 @@ namespace Omatech\Editora\Connector\Cache;
 
 use Illuminate\Cache\Repository;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Carbon;
 use Omatech\Editora\Connector\Models\StaticTexts;
 
-/** Loads Editora static texts once per language and keeps them with the content cache's freshness. */
+/** Loads Editora static texts once per language and keeps them with the content cache's freshness, publications included. */
 class CachedStaticTexts
 {
     private array $languages = [];
 
-    public function __construct(private Repository $cache, private int $ttl, private string $namespace, private int $staleTtl = 300)
+    public function __construct(private Repository $cache, private int $ttl, private string $namespace, private int $staleTtl = 300, private ?ContentFreshness $freshness = null)
     {
     }
 
@@ -23,6 +24,7 @@ class CachedStaticTexts
             config('editora-cache.content.enabled') ? (int) config('editora-cache.content.ttl') : 0,
             $app->make(CacheVersion::class)->current(),
             (int) config('editora-cache.content.stale_ttl'),
+            $app->make(ContentFreshness::class),
         ));
     }
 
@@ -31,12 +33,22 @@ class CachedStaticTexts
         if ($this->ttl <= 0 || request()->attributes->get('preview') || request()->has('preview')) {
             return StaticTexts::todos_lang($locale);
         }
-        return $this->languages[$locale] ??= $this->cache->flexible(
-            'cms:'.$this->namespace.':texts:'.hash('sha256', config('database.default').':'.config('database.connections.'.config('database.default').'.database').':'.$locale),
-            [$this->ttl, max($this->ttl, $this->staleTtl)],
-            fn () => StaticTexts::todos_lang($locale),
+        return $this->languages[$locale] ??= $this->load($locale);
+    }
+
+    private function load(string $locale): array
+    {
+        $entry = $this->cache->flexible(
+            'cms:'.$this->namespace.':texts:v2:'.hash('sha256', config('database.default').':'.config('database.connections.'.config('database.default').'.database').':'.$locale),
+            [$this->freshness?->freshSeconds($this->ttl) ?? $this->ttl, max($this->ttl, $this->staleTtl)],
+            fn () => ['read' => Carbon::now()->getTimestamp(), 'texts' => StaticTexts::todos_lang($locale)],
             ['seconds' => 30],
         );
+        if ($this->freshness?->fresh($entry['read'], $this->ttl) === false) {
+            $this->freshness->servedStale();
+        }
+
+        return $entry['texts'];
     }
 
     public function get($text, array $replacements = [], ?string $locale = null): string
