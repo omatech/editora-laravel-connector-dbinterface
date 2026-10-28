@@ -13,8 +13,10 @@ use Throwable;
 /**
  * Whether cached CMS content is still current. A publication is recorded, as a time, whenever the Editora
  * admin writes public content; content cached before it stops being fresh, so it is served once more and
- * refreshed after the response, and no visitor waits for a cold render. A page rendered from content that
- * was not fresh must not be stored. Unlike a CacheVersion change, a publication discards nothing.
+ * refreshed after the response, and no visitor waits for a cold render. In reload mode (editora-cache.publications
+ * = reload) it is read again before it is served instead, so the first visit already shows the publication. A
+ * page rendered from content that was not fresh must not be stored. Unlike a CacheVersion change, a publication
+ * discards nothing.
  *
  * A refresh that read the database before a publication and stored after it keeps serving that content
  * for at most one TTL, and no page rendered from it is stored meanwhile.
@@ -30,7 +32,7 @@ final class ContentFreshness
         .'|UPDATE(?:\s+(?:LOW_PRIORITY|IGNORE))*|DELETE(?:\s+(?:LOW_PRIORITY|QUICK|IGNORE))*\s+FROM)\s+`?(\w+)`?[\s(]/i';
 
     /** A null store means publications are not tracked: content is fresh for its whole TTL. */
-    public function __construct(private ?Repository $store = null)
+    public function __construct(private ?Repository $store = null, private bool $reload = false)
     {
     }
 
@@ -41,7 +43,10 @@ final class ContentFreshness
      */
     public static function register(Application $app): void
     {
-        $app->singleton(self::class, fn ($app) => new self($app['cache']->store(config('editora-cache.content.store'))));
+        $app->singleton(self::class, fn ($app) => new self(
+            $app['cache']->store(config('editora-cache.content.store')),
+            config('editora-cache.publications') === 'reload',
+        ));
         $app['events']->listen(QueryExecuted::class, function (QueryExecuted $query) use ($app): void {
             if ($app['request']->route()?->getControllerClass() !== self::ADMIN || !self::changesPublicContent($query->sql)) {
                 return;
@@ -103,6 +108,12 @@ final class ContentFreshness
     public function fresh(int $readAt, int $ttl): bool
     {
         return $readAt > $this->lastPublication() && $readAt + $ttl > Carbon::now()->getTimestamp();
+    }
+
+    /** Whether content read at $readAt must be read again before it is served: in reload mode, once a publication followed the read. */
+    public function mustReload(int $readAt): bool
+    {
+        return $this->reload && $this->lastPublication() > 0 && $readAt <= $this->lastPublication();
     }
 
     public function servedStale(): void

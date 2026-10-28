@@ -126,8 +126,8 @@ class CachedExtractor extends Extractor
             'default_language_to_remove_from_url', 'preview', 'preview_date', 'debug',
             'avoid_cache', 'paginator', 'last_updated_timestamp',
         ]));
-        $fresh = $this->freshness?->freshSeconds($this->ttl) ?? $this->ttl;
-        $entry = $this->cache->flexible($key, [$fresh, max($this->ttl, $this->staleTtl)], function () use ($load, $context) {
+        $ttl = [$this->freshness?->freshSeconds($this->ttl) ?? $this->ttl, max($this->ttl, $this->staleTtl)];
+        $entry = $this->flexible($key, $ttl, function () use ($load, $context) {
             $restore = array_intersect_key(get_object_vars($this), $context);
             foreach ($context as $property => $value) {
                 $this->$property = $value;
@@ -143,7 +143,7 @@ class CachedExtractor extends Extractor
                     $this->$property = $value;
                 }
             }
-        }, ['seconds' => 30]);
+        });
         // Judged by when the database was read, so a read that a publication overtook is not fresh either.
         if ($this->freshness?->fresh($entry['read'] ?? 0, $this->ttl) === false) {
             $this->freshness->servedStale();
@@ -152,6 +152,19 @@ class CachedExtractor extends Extractor
         $this->last_updated_timestamp = max($this->last_updated_timestamp, $entry['updated']);
 
         return $entry['result'];
+    }
+
+    /** Cache::flexible(), except that in reload mode a copy read before the last publication is read again at once. */
+    private function flexible(string $key, array $ttl, Closure $load): array
+    {
+        $entry = $this->cache->flexible($key, $ttl, $load, ['seconds' => 30]);
+        if ($this->freshness?->mustReload($entry['read'] ?? 0)) {
+            // Without a value flexible() reads at once; the refresh it deferred finds a newer copy and stands down.
+            $this->cache->forget($key);
+            $entry = $this->cache->flexible($key, $ttl, $load, ['seconds' => 30]);
+        }
+
+        return $entry;
     }
 
     private function containsObject(array $values): bool
