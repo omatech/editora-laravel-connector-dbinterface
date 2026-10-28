@@ -198,3 +198,43 @@ php artisan editora:modernize
 
 
 
+
+# Caching and private media
+
+Optional building blocks, all off until the application registers them. The provider merges their defaults as `editora-cache` and `editora-media`; an application `config/editora-cache.php` or `config/editora-media.php` replaces each top-level key it defines.
+
+## Content cache
+
+`Cache\CachedExtractor` caches the complete graph returned by the listed extractor methods. An entry is fresh for `CMS_CACHE_TTL` seconds (60) and, up to `CMS_CACHE_STALE_TTL` (300), is served at once and refreshed after the response. Nested calls, preview, debug and `avoid_cache` always read the database. Register it in a service provider's `boot()`:
+
+```php
+\Omatech\Editora\Connector\Cache\CachedExtractor::register($this->app, ['findInstanceByIdAllElements', 'findChildrenInstances']);
+```
+
+Leave out methods whose arguments come from free text, such as a search building `findInstancesInList` ids: every distinct query would become a cache entry. `Cache\CachedStaticTexts::register($this->app)` does the same for static texts, once per language.
+
+`CMS_CACHE_STORE` selects the store (default: the application's), `CMS_CACHE_ENABLED=false` turns it off and changing `CMS_CACHE_VERSION` stops serving every older copy. To invalidate on publication instead, bind `Cache\CacheVersion` to your own implementation.
+
+## Page cache
+
+`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per cache version, for 300 seconds. It only stores a page that another visitor may receive: a complete `200 text/html` document of at most 512 KiB, without the session's CSRF token, `_token` fields, a `csrf-token` meta, a `nonce` or a VarDumper dump, rendered for a session holding only language and navigation, and adding no header or cookie besides the session ones. Answers carry `X-Page-Cache: HIT|MISS|BYPASS` and `Cache-Control: no-store`, so an edge cache never keeps a page the version no longer reaches. At most 32 MiB of new pages are stored per 300-second window. Register it after any middleware whose headers every response needs:
+
+```php
+protected $middleware = [
+    // ...
+    \App\Http\Middleware\SecurityHeaders::class,
+    \Omatech\Editora\Connector\Cache\PageCache::class,
+];
+```
+
+`PAGE_CACHE_STORE` selects the store and `PAGE_CACHE_ENABLED=false` turns it off.
+
+## Media from a private bucket
+
+`Media\PublicMediaController` serves CMS media from a private S3 bucket under the site's own URL, so the bucket host never reaches the browser:
+
+```php
+Route::get('uploads/{path}', \Omatech\Editora\Connector\Media\PublicMediaController::class)->where('path', '.*');
+```
+
+It reads `editora-media.prefix` + path from the `editora-media.disk` filesystem disk, which must be a complete `s3` disk with an HTTPS endpoint; otherwise it answers 404 and the web server serves local media. It needs `aws/aws-sdk-php`, not the Flysystem S3 adapter. Responses are streamed with `Cache-Control: public, max-age=86400` (`cache_seconds`), `ETag`, `Last-Modified`, 304 answers and a single forwarded `bytes=` range. The content type comes from `editora-media.types`, never from stored metadata; every answer carries `nosniff` and SVG adds a sandbox CSP. Other extensions answer 404, or download as attachments with `attachments => true`. Hidden paths, traversal, backslashes, `denied_prefixes` and `denied_extensions` answer 404 without reaching storage; a missing object answers 404 and a storage failure 502 without caching, and is reported.

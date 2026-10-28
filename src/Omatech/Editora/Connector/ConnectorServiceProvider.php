@@ -4,6 +4,8 @@ namespace Omatech\Editora\Connector;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\DB;
+use Omatech\Editora\Connector\Cache\CacheVersion;
+use Omatech\Editora\Connector\Cache\ConfiguredCacheVersion;
 use Omatech\Editora\Connector\Commands\EditoraModernize;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Loader\Loader;
@@ -59,26 +61,6 @@ class ConnectorServiceProvider extends ServiceProvider
         include __DIR__.'/Directives/GenerateEditoraEditScriptsDirective.php';
     }
 
-    private function toDoctrineDB($config)
-    {
-        $driverSchemeAliases = [
-            'mysql'    => 'pdo_mysql',
-            'mariadb'  => 'pdo_mysql',
-            'pgsql' => 'pdo_pgsql',
-            'sqlite'   => 'pdo_sqlite',
-            'sqlsrv'   => 'pdo_sqlsrv',
-        ];
-        
-        $config['driver'] = $driverSchemeAliases[$config['driver']] ?? $config['driver'];
-        $config['user'] = $config['username'] ?? '';
-        $config['dbname'] = $config['database'];
-        $config['driverOptions'] = $config['options'] ?? [];
-        if($config['unix_socket'] ?? false) {
-            unset($config['host']);
-        }
-        return $config;
-    }
-
     /**
      * Register the application services.
      *
@@ -90,9 +72,11 @@ class ConnectorServiceProvider extends ServiceProvider
             __DIR__.'/Configuration.php',
             'editora'
         );
+        $this->mergeConfigFrom(__DIR__.'/Cache/config.php', 'editora-cache');
+        $this->mergeConfigFrom(__DIR__.'/Media/config.php', 'editora-media');
+        $this->app->bindIf(CacheVersion::class, ConfiguredCacheVersion::class);
 
-        $db = DB::connection()->getConfig();
-        $db = $this->toDoctrineDB($db);
+        $db = DoctrineConnection::fromLaravel(DB::connection()->getConfig());
 
         $this->app->bind('Extractor', function () use ($db) {
             return new Extractor($db);

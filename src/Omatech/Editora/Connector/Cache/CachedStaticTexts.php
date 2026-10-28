@@ -1,0 +1,59 @@
+<?php
+
+namespace Omatech\Editora\Connector\Cache;
+
+use Illuminate\Cache\Repository;
+use Illuminate\Contracts\Foundation\Application;
+use Omatech\Editora\Connector\Models\StaticTexts;
+
+/** Loads Editora static texts once per language and keeps them with the content cache's freshness. */
+class CachedStaticTexts
+{
+    private array $languages = [];
+
+    public function __construct(private Repository $cache, private int $ttl, private string $namespace, private int $staleTtl = 300)
+    {
+    }
+
+    /** One instance per request, configured by editora-cache; the application's _statictext() helper uses it. */
+    public static function register(Application $app): void
+    {
+        $app->scoped(self::class, fn ($app) => new self(
+            $app['cache']->store(config('editora-cache.content.store')),
+            config('editora-cache.content.enabled') ? (int) config('editora-cache.content.ttl') : 0,
+            $app->make(CacheVersion::class)->current(),
+            (int) config('editora-cache.content.stale_ttl'),
+        ));
+    }
+
+    public function all(string $locale): array
+    {
+        if ($this->ttl <= 0 || request()->attributes->get('preview') || request()->has('preview')) {
+            return StaticTexts::todos_lang($locale);
+        }
+        return $this->languages[$locale] ??= $this->cache->flexible(
+            'cms:'.$this->namespace.':texts:'.hash('sha256', config('database.default').':'.config('database.connections.'.config('database.default').'.database').':'.$locale),
+            [$this->ttl, max($this->ttl, $this->staleTtl)],
+            fn () => StaticTexts::todos_lang($locale),
+            ['seconds' => 30],
+        );
+    }
+
+    public function get($text, array $replacements = [], ?string $locale = null): string
+    {
+        if (!is_string($text)) {
+            throw new \InvalidArgumentException('You must supply a string to be translated.');
+        }
+        $locale = $locale ?: app()->getLocale();
+        $texts = $this->all($locale);
+        // Preserve Editora's first-or-create behavior for missing translations.
+        $value = $texts[$text] ?? (new StaticTexts)->getOneStaticText($text, [], $locale);
+        if (!array_key_exists($text, $texts) && $this->ttl > 0) {
+            $this->languages[$locale][$text] = $value;
+        }
+        foreach ($replacements as $key => $replacement) {
+            $value = str_replace('#'.$key.'#', $replacement, $value);
+        }
+        return $value;
+    }
+}

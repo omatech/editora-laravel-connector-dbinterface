@@ -7,6 +7,9 @@
     },
     "require-dev": {
     },
+    "suggest": {
+        "aws/aws-sdk-php": "Required by Media\\PublicMediaController to serve media from a private S3 bucket"
+    },
     "autoload": {
         "psr-4": {
             "Omatech\\": "src/Omatech"
