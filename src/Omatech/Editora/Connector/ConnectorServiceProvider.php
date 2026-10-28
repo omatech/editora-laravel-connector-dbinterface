@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\DB;
 use Omatech\Editora\Connector\Cache\CacheVersion;
 use Omatech\Editora\Connector\Cache\ConfiguredCacheVersion;
+use Omatech\Editora\Connector\Cache\ContentFreshness;
 use Omatech\Editora\Connector\Commands\EditoraModernize;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Loader\Loader;
@@ -75,6 +76,7 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/Cache/config.php', 'editora-cache');
         $this->mergeConfigFrom(__DIR__.'/Media/config.php', 'editora-media');
         $this->app->bindIf(CacheVersion::class, ConfiguredCacheVersion::class);
+        $this->app->singletonIf(ContentFreshness::class, fn () => new ContentFreshness());
 
         $db = DoctrineConnection::fromLaravel(DB::connection()->getConfig());
 

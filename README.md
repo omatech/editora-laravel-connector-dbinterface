@@ -213,11 +213,15 @@ Optional building blocks, all off until the application registers them. The prov
 
 Leave out methods whose arguments come from free text, such as a search building `findInstancesInList` ids: every distinct query would become a cache entry. `Cache\CachedStaticTexts::register($this->app)` does the same for static texts, once per language.
 
-`CMS_CACHE_STORE` selects the store (default: the application's), `CMS_CACHE_ENABLED=false` turns it off and changing `CMS_CACHE_VERSION` stops serving every older copy. To invalidate on publication instead, bind `Cache\CacheVersion` to your own implementation.
+`CMS_CACHE_STORE` selects the store (default: the application's), `CMS_CACHE_ENABLED=false` turns it off and changing `CMS_CACHE_VERSION` stops serving every older copy. To discard everything on publication instead, bind `Cache\CacheVersion` to your own implementation.
+
+## Publications
+
+When the Editora admin runs inside the application, `Cache\ContentFreshness::register($this->app)` (in `register()`, before `CachedExtractor::register`) makes publications reach visitors without a cold render. Every write the admin makes to public CMS tables records a publication time in the content store; sign-in, favourites, recent items, roles and permissions do not count, nor do writes from visitor requests or console commands. Content read from the database before that time is no longer fresh: it is served once more, at once, and refreshed after the response. All admin writes go through the Laravel connection, so saves, publication, deletion, cloning, relations, ordering, static texts, images and imports are all seen.
 
 ## Page cache
 
-`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per cache version, for 300 seconds. It only stores a page that another visitor may receive: a complete `200 text/html` document of at most 512 KiB, without the session's CSRF token, `_token` fields, a `csrf-token` meta, a `nonce` or a VarDumper dump, rendered for a session holding only language and navigation, and adding no header or cookie besides the session ones. Answers carry `X-Page-Cache: HIT|MISS|BYPASS` and `Cache-Control: no-store`, so an edge cache never keeps a page the version no longer reaches. At most 32 MiB of new pages are stored per 300-second window. Register it after any middleware whose headers every response needs:
+`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per cache version, for 300 seconds. The key includes the last publication, and a page rendered from content that was not fresh is answered as `STALE` and not stored, so a page shows a publication as soon as its content has refreshed. It only stores a page that another visitor may receive: a complete `200 text/html` document of at most 512 KiB, without the session's CSRF token, `_token` fields, a `csrf-token` meta, a `nonce` or a VarDumper dump, rendered for a session holding only language and navigation, and adding no header or cookie besides the session ones. Answers carry `X-Page-Cache: HIT|MISS|STALE|BYPASS` and `Cache-Control: no-store`, so an edge cache never keeps a page the version no longer reaches. At most 32 MiB of new pages are stored per 300-second window. Register it after any middleware whose headers every response needs:
 
 ```php
 protected $middleware = [

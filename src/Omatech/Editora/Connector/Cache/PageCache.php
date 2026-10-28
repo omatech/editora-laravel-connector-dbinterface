@@ -18,6 +18,9 @@ use Throwable;
  * header or cookie the copy would lose. Register it as global middleware after any middleware whose
  * headers every response needs.
  *
+ * Pages rendered from content that was not fresh are answered as STALE and not stored, and the key
+ * includes the last publication, so a publication reaches visitors once its content has refreshed.
+ *
  * Responses carry no-store: an edge cache would otherwise keep pages that a new version no longer
  * reaches. Stored bytes per window are capped because the store may be a Valkey that several
  * applications share and that does not evict.
@@ -29,7 +32,7 @@ final class PageCache
     private const ANONYMOUS_SESSION = ['_token', '_previous', '_flash', 'locale', 'u_lang'];
     private const RENDERED_HEADERS = ['cache-control', 'content-type', 'date', 'set-cookie'];
 
-    public function __construct(private CacheVersion $version)
+    public function __construct(private CacheVersion $version, private ContentFreshness $freshness)
     {
     }
 
@@ -50,6 +53,9 @@ final class PageCache
             return $this->replay($request, ...$entry);
         }
         $response = $next($request);
+        if ($this->freshness->stale()) {
+            return $this->unshared($this->mark($response, 'STALE'));
+        }
         if ($this->storable($request, $response)) {
             $this->store($store, $key, $response);
         }
@@ -70,7 +76,7 @@ final class PageCache
     private function key(Request $request): string
     {
         return 'page:v1:'.hash('sha256', json_encode(
-            [$request->getSchemeAndHttpHost(), '/'.$request->path(), $this->version->current()],
+            [$request->getSchemeAndHttpHost(), '/'.$request->path(), $this->version->current(), $this->freshness->lastPublication()],
             JSON_THROW_ON_ERROR
         ));
     }

@@ -5,6 +5,7 @@ namespace Omatech\Editora\Connector\Cache;
 use Closure;
 use Illuminate\Cache\Repository;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Omatech\Editora\Connector\DoctrineConnection;
 use Omatech\Editora\Extractor\Extractor;
@@ -12,8 +13,9 @@ use ReflectionFunction;
 
 /**
  * Caches complete public content graphs, including their pagination state, for the extractor methods
- * listed in $methods. An entry is fresh for $ttl seconds and, up to $staleTtl, is served at once and
- * refreshed after the response. Nested calls, preview, debug and avoid_cache always read the database.
+ * listed in $methods. An entry is fresh for $ttl seconds, never past the last publication, and up to
+ * $staleTtl is served at once and refreshed after the response; serving it marks the request as stale for
+ * the page cache. Nested calls, preview, debug and avoid_cache always read the database.
  */
 class CachedExtractor extends Extractor
 {
@@ -24,7 +26,7 @@ class CachedExtractor extends Extractor
 
     private int $depth = 0;
 
-    public function __construct($connection, private Repository $cache, private int $ttl = 60, private string $namespace = 'v1', $params = [], private int $staleTtl = 300, private array $methods = self::METHODS)
+    public function __construct($connection, private Repository $cache, private int $ttl = 60, private string $namespace = 'v1', $params = [], private int $staleTtl = 300, private array $methods = self::METHODS, private ?ContentFreshness $freshness = null)
     {
         parent::__construct($connection, $params);
     }
@@ -40,6 +42,7 @@ class CachedExtractor extends Extractor
             [],
             (int) config('editora-cache.content.stale_ttl'),
             $methods,
+            $app->make(ContentFreshness::class),
         ));
     }
 
@@ -123,15 +126,17 @@ class CachedExtractor extends Extractor
             'default_language_to_remove_from_url', 'preview', 'preview_date', 'debug',
             'avoid_cache', 'paginator', 'last_updated_timestamp',
         ]));
-        $entry = $this->cache->flexible($key, [$this->ttl, max($this->ttl, $this->staleTtl)], function () use ($load, $context) {
+        $fresh = $this->freshness?->freshSeconds($this->ttl) ?? $this->ttl;
+        $entry = $this->cache->flexible($key, [$fresh, max($this->ttl, $this->staleTtl)], function () use ($load, $context) {
             $restore = array_intersect_key(get_object_vars($this), $context);
             foreach ($context as $property => $value) {
                 $this->$property = $value;
             }
             $this->depth++;
             try {
+                $read = Carbon::now()->getTimestamp();
                 $result = $load();
-                return ['result' => $result, 'paginator' => $this->paginator, 'updated' => $this->last_updated_timestamp];
+                return ['result' => $result, 'paginator' => $this->paginator, 'updated' => $this->last_updated_timestamp, 'read' => $read];
             } finally {
                 $this->depth--;
                 foreach ($restore as $property => $value) {
@@ -139,6 +144,10 @@ class CachedExtractor extends Extractor
                 }
             }
         }, ['seconds' => 30]);
+        // Judged by when the database was read, so a read that a publication overtook is not fresh either.
+        if ($this->freshness?->fresh($entry['read'] ?? 0, $this->ttl) === false) {
+            $this->freshness->servedStale();
+        }
         $this->paginator = $entry['paginator'];
         $this->last_updated_timestamp = max($this->last_updated_timestamp, $entry['updated']);
 
