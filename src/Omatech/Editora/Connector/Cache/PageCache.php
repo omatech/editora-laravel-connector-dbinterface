@@ -22,6 +22,10 @@ use Throwable;
  * includes the last publication, so a publication reaches visitors once its content has refreshed. It
  * also includes the build, so a deploy never replays pages rendered by the previous code.
  *
+ * Editora admin sessions never get or leave the shared copy: their pages carry the edit tools
+ * (@editora_scripts). The session is only known once the application has run, so every response to one
+ * sets EDITOR_COOKIE, and requests carrying it skip the cache until the session no longer has a role.
+ *
  * Responses carry no-store: an edge cache would otherwise keep pages that a new version no longer
  * reaches. Stored bytes per window are capped because the store may be a Valkey that several
  * applications share and that does not evict.
@@ -33,11 +37,23 @@ final class PageCache
     private const ANONYMOUS_SESSION = ['_token', '_previous', '_flash', 'locale', 'u_lang'];
     private const RENDERED_HEADERS = ['cache-control', 'content-type', 'date', 'set-cookie'];
 
+    /** Marks a browser with an Editora admin session; ContentFreshness can read publications again for it. */
+    public const EDITOR_COOKIE = 'editora_editor';
+
     public function __construct(private CacheVersion $version, private ContentFreshness $freshness)
     {
     }
 
     public function handle(Request $request, Closure $next): Response
+    {
+        $response = $request->cookies->has(self::EDITOR_COOKIE)
+            ? $this->mark($next($request), 'BYPASS')
+            : $this->serve($request, $next);
+
+        return $this->markEditor($request, $response);
+    }
+
+    private function serve(Request $request, Closure $next): Response
     {
         if (!$this->eligible($request)) {
             return $this->mark($next($request), 'BYPASS');
@@ -62,6 +78,23 @@ final class PageCache
         }
 
         return $this->unshared($this->mark($response, 'MISS'));
+    }
+
+    /** Sets or renews EDITOR_COOKIE for an admin session, like the session itself, and removes it once the role is gone. */
+    private function markEditor(Request $request, Response $response): Response
+    {
+        // A page replayed from the cache never started a session: nothing is known about the visitor.
+        if (!$request->hasSession()) {
+            return $response;
+        }
+        if ((string) $request->session()->get('rol_id', '') !== '') {
+            $response->headers->setCookie(cookie(self::EDITOR_COOKIE, '1', (int) config('session.lifetime'),
+                config('session.path'), config('session.domain'), config('session.secure'), true, false, config('session.same_site')));
+        } elseif ($request->cookies->has(self::EDITOR_COOKIE)) {
+            $response->headers->setCookie(cookie()->forget(self::EDITOR_COOKIE, config('session.path'), config('session.domain')));
+        }
+
+        return $response;
     }
 
     private function eligible(Request $request): bool

@@ -5,6 +5,7 @@ namespace Omatech\Editora\Connector\Cache;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use LogicException;
 use RuntimeException;
@@ -14,7 +15,8 @@ use Throwable;
  * Whether cached CMS content is still current. A publication is recorded, as a time, whenever the Editora
  * admin writes public content; content cached before it stops being fresh, so it is served once more and
  * refreshed after the response, and no visitor waits for a cold render. In reload mode (editora-cache.publications
- * = reload) it is read again before it is served instead, so the first visit already shows the publication. A
+ * = reload, or = editors for browsers marked by PageCache as Editora admin sessions) it is read again before it is
+ * served instead, so the first visit already shows the publication. A
  * page rendered from content that was not fresh must not be stored. Unlike a CacheVersion change, a publication
  * discards nothing.
  *
@@ -43,9 +45,9 @@ final class ContentFreshness
      */
     public static function register(Application $app): void
     {
-        $app->singleton(self::class, fn ($app) => new self(
+        $app->scoped(self::class, fn ($app) => new self(
             $app['cache']->store(config('editora-cache.content.store')),
-            config('editora-cache.publications') === 'reload',
+            self::reloads($app['request']),
         ));
         $app['events']->listen(QueryExecuted::class, function (QueryExecuted $query) use ($app): void {
             if ($app['request']->route()?->getControllerClass() !== self::ADMIN || !self::changesPublicContent($query->sql)) {
@@ -58,6 +60,16 @@ final class ContentFreshness
                 report($e);
             }
         });
+    }
+
+    /** Whether this request reads content again after a publication, per editora-cache.publications. */
+    private static function reloads(Request $request): bool
+    {
+        return match (config('editora-cache.publications')) {
+            'reload' => true,
+            'editors' => $request->cookies->has(PageCache::EDITOR_COOKIE),
+            default => false,
+        };
     }
 
     public static function changesPublicContent(string $sql): bool

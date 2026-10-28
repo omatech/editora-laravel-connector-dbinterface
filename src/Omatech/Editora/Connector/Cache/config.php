@@ -5,7 +5,8 @@ return [
     'version' => env('CMS_CACHE_VERSION', 'v1'),
 
     // After a publication, content read before it is served once more and refreshed after the response ('refresh'),
-    // or read again before it is served ('reload'), so the first visit already shows the publication.
+    // or read again before it is served, so the first visit already shows the publication: for every request
+    // ('reload') or only for browsers with an Editora admin session ('editors'), whose read updates it for everyone.
     'publications' => env('CMS_CACHE_PUBLICATIONS', 'refresh'),
 
     // Extractor graphs cached by CachedExtractor; a null store means the application's default store.
