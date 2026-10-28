@@ -205,7 +205,7 @@ Optional building blocks, all off until the application registers them. The prov
 
 ## Content cache
 
-`Cache\CachedExtractor` caches the complete graph returned by the listed extractor methods. An entry is fresh for `CMS_CACHE_TTL` seconds (60) and, up to `CMS_CACHE_STALE_TTL` (300), is served at once and refreshed after the response. Nested calls, preview, debug and `avoid_cache` always read the database. Register it in a service provider's `boot()`:
+`Cache\CachedExtractor` caches the complete graph returned by the listed extractor methods. An entry is fresh for `CMS_CACHE_TTL` seconds (60) and, up to `CMS_CACHE_STALE_TTL` (86400, a day), is served at once and refreshed after the response. Nested calls, preview, debug and `avoid_cache` always read the database. Register it in a service provider's `boot()`:
 
 ```php
 \Omatech\Editora\Connector\Cache\CachedExtractor::register($this->app, ['findInstanceByIdAllElements', 'findChildrenInstances']);
@@ -221,7 +221,7 @@ When the Editora admin runs inside the application, `Cache\ContentFreshness::reg
 
 ## Page cache
 
-`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per cache version, for 300 seconds. The key includes the last publication, and a page rendered from content that was not fresh is answered as `STALE` and not stored, so a page shows a publication as soon as its content has refreshed. It only stores a page that another visitor may receive: a complete `200 text/html` document of at most 512 KiB, without the session's CSRF token, `_token` fields, a `csrf-token` meta, a `nonce` or a VarDumper dump, rendered for a session holding only language and navigation, and adding no header or cookie besides the session ones. Answers carry `X-Page-Cache: HIT|MISS|STALE|BYPASS` and `Cache-Control: no-store`, so an edge cache never keeps a page the version no longer reaches. At most 32 MiB of new pages are stored per 300-second window. Register it after any middleware whose headers every response needs:
+`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per cache version, for `PAGE_CACHE_TTL` seconds (3600, an hour). The key includes the build (the time the configuration was cached), so every deploy starts afresh, and the last publication, and a page rendered from content that was not fresh is answered as `STALE` and not stored, so a page shows a publication as soon as its content has refreshed. It only stores a page that another visitor may receive: a complete `200 text/html` document of at most 512 KiB, without the session's CSRF token, `_token` fields, a `csrf-token` meta, a `nonce` or a VarDumper dump, rendered for a session holding only language and navigation, and adding no header or cookie besides the session ones. Answers carry `X-Page-Cache: HIT|MISS|STALE|BYPASS` and `Cache-Control: no-store`, so an edge cache never keeps a page the version no longer reaches. At most 32 MiB of new pages are stored per TTL window, so at most two windows' worth is alive. Register it after any middleware whose headers every response needs:
 
 ```php
 protected $middleware = [

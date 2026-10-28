@@ -19,7 +19,8 @@ use Throwable;
  * headers every response needs.
  *
  * Pages rendered from content that was not fresh are answered as STALE and not stored, and the key
- * includes the last publication, so a publication reaches visitors once its content has refreshed.
+ * includes the last publication, so a publication reaches visitors once its content has refreshed. It
+ * also includes the build, so a deploy never replays pages rendered by the previous code.
  *
  * Responses carry no-store: an edge cache would otherwise keep pages that a new version no longer
  * reaches. Stored bytes per window are capped because the store may be a Valkey that several
@@ -76,9 +77,17 @@ final class PageCache
     private function key(Request $request): string
     {
         return 'page:v1:'.hash('sha256', json_encode(
-            [$request->getSchemeAndHttpHost(), '/'.$request->path(), $this->version->current(), $this->freshness->lastPublication()],
+            [$request->getSchemeAndHttpHost(), '/'.$request->path(), $this->version->current(), $this->freshness->lastPublication(), $this->build()],
             JSON_THROW_ON_ERROR
         ));
+    }
+
+    /** Every build caches the configuration anew; without a cached configuration there is no build to tell apart. */
+    private function build(): int
+    {
+        $config = app()->getCachedConfigPath();
+
+        return is_file($config) ? (int) filemtime($config) : 0;
     }
 
     private function replay(Request $request, string $type, string $body): Response

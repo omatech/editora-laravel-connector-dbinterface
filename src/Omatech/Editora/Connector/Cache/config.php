@@ -8,7 +8,7 @@ return [
     'content' => [
         'enabled' => env('CMS_CACHE_ENABLED', true),
         'ttl' => (int) env('CMS_CACHE_TTL', 60),
-        'stale_ttl' => (int) env('CMS_CACHE_STALE_TTL', 300),
+        'stale_ttl' => (int) env('CMS_CACHE_STALE_TTL', 86400),
         'store' => env('CMS_CACHE_STORE'),
     ],
 
@@ -16,7 +16,7 @@ return [
     'page' => [
         'enabled' => env('PAGE_CACHE_ENABLED', true),
         'store' => env('PAGE_CACHE_STORE'),
-        'ttl' => 300,
+        'ttl' => (int) env('PAGE_CACHE_TTL', 3600),
         'max_bytes' => 524288,
         'budget_bytes' => 33554432,
     ],
