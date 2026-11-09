@@ -237,6 +237,19 @@ Editora admin sessions never get or leave the shared copy, because their pages c
 
 `PAGE_CACHE_STORE` selects the store and `PAGE_CACHE_ENABLED=false` turns it off.
 
+## Warming the caches
+
+`php artisan editora:warm` visits every published page once, through the site's own URL, so no visitor pays for an empty cache. It requests `/{language}` for each language in `editora.availableLanguages` (or the home instance's nice URL when `homeNiceUrl` is true), then `/{language}/{nice_url}` for every instance that is published now (status `O`, inside its publishing dates). An empty content cache is filled; content past its TTL is served at once and refreshed after the answer; pages that `PageCache` may share are stored. It reports the status and `X-Page-Cache` counts, names every page that answered 4xx, 5xx or nothing, and fails when any answered 5xx or nothing.
+
+`--url=` visits another base URL (default `APP_URL`); `CMS_CACHE_WARM_TIMEOUT` (60 s) bounds each request. Pages are visited one after another, so a run never adds more than one page render at a time to the site.
+
+Schedule it so the content never goes cold, for example every hour, inside the content's `CMS_CACHE_STALE_TTL` (a day) and the page TTL, and run it after changing `CMS_CACHE_VERSION`:
+
+```php
+// routes/console.php
+Schedule::command('editora:warm')->hourly()->withoutOverlapping();
+```
+
 ## Media from a private bucket
 
 `Media\PublicMediaController` serves CMS media from a private S3 bucket under the site's own URL, so the bucket host never reaches the browser:

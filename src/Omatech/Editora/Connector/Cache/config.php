@@ -17,6 +17,11 @@ return [
         'store' => env('CMS_CACHE_STORE'),
     ],
 
+    // editora:warm, which visits every published page to fill the caches.
+    'warm' => [
+        'timeout' => (int) env('CMS_CACHE_WARM_TIMEOUT', 60),
+    ],
+
     // Whole public pages served by the PageCache middleware.
     'page' => [
         'enabled' => env('PAGE_CACHE_ENABLED', true),

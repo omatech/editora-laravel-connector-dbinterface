@@ -19,6 +19,7 @@ use Omatech\Editora\Connector\Commands\EditoraDatabaseChanged;
 use Omatech\Editora\Connector\Commands\EditoraRemoveContent;
 use Omatech\Editora\Connector\Commands\EditoraRegeneratePasswords;
 use Omatech\Editora\Connector\Commands\EditoraEncryptPasswords;
+use Omatech\Editora\Connector\Commands\EditoraWarm;
 
 class ConnectorServiceProvider extends ServiceProvider
 {
@@ -104,7 +105,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
         $this->registerHelpers();
 
-        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraDatabaseChanged::class, EditoraRemoveContent::class, EditoraRegeneratePasswords::class, EditoraEncryptPasswords::class]);
+        $this->commands([EditoraCreate::class, EditoraModernize::class, EditoraFakeContent::class, EditoraCreateMVC::class, EditoraDatabaseChanged::class, EditoraRemoveContent::class, EditoraRegeneratePasswords::class, EditoraEncryptPasswords::class, EditoraWarm::class]);
     }
 
     /**
