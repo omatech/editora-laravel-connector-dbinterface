@@ -329,23 +329,7 @@ if (!function_exists('_hosturl')) {
 
 if (!function_exists('_fileInfo')) {
     function _fileInfo($file) {
-        $file_path = public_path().$file;
-        $exists = Storage::disk('editora_public')->exists($file);
-        if (!$exists){
-            return '';
-        }
-
-        $file_info = pathinfo($file_path);
-        
-        $size = filesize($file_path);
-        $units = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
-        $power = $size > 0 ? floor(log($size, 1024)) : 0;
-        $file_size = number_format($size / pow(1024, $power), 2, '.', ',') . '' . $units[$power];
-
-        $extension = strtoupper($file_info['extension']);
-
-
-        return '('.$extension.' '.$file_size.')';
+        return \Omatech\Editora\Connector\Media\FileInfo::describe((string) $file);
     }
 }
 

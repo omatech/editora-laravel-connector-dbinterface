@@ -263,3 +263,5 @@ It reads `editora-media.prefix` + path from the `editora-media.disk` filesystem 
 ## Package checks
 
 Run `make build install check` to build the pinned PHP 8.5.12 test image, install development dependencies and run lint, the standalone Laravel HTTP tests, Composer validation and the dependency audit. `make test ARGS="--filter PublicMediaTest"` runs the media contracts. Tests use generated applications in temporary directories, in-memory SQLite and synthetic S3 responses; they need no project credentials or external storage. The same command is configured in `.github/workflows/tests.yml`.
+
+`_fileInfo($path)` describes a public CMS upload such as `/uploads/document.pdf` using the same `editora-media.disk` and prefix as the media controller. It reads the filesystem size metadata, so no local copy or object download is needed; an empty file shows `0.00B` and a missing or disallowed public path returns an empty string. Stored file names are used as raw keys, including literal percent signs.
