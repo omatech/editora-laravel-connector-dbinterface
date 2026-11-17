@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb55392d6b69
+    environment:
+      MYSQL_ROOT_PASSWORD: fixture-root-only
+      MYSQL_DATABASE: connector_fixture
+      MYSQL_USER: fixture
+      MYSQL_PASSWORD: fixture-only
+    tmpfs: [/var/lib/mysql]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD=$$MYSQL_PASSWORD mysql -h127.0.0.1 -u$$MYSQL_USER connector_fixture -e "SELECT 1"']
+      interval: 2s
+      timeout: 3s
+      retries: 40
+    networks: [fixture]
+  tester:
+    image: editora-connector-tests:8.5.12
+    working_dir: /app
+    user: '${APP_UID}:${APP_GID}'
+    volumes: ['..:/app']
+    environment:
+      CONNECTOR_TEST_MYSQL: '1'
+    command: [php, vendor/bin/phpunit, --testsuite, MySQL]
+    depends_on:
+      mysql: {condition: service_healthy}
+    networks: [fixture]
+networks:
+  fixture: {internal: true}

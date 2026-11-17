@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".phpunit.cache" failOnWarning="true" failOnRisky="true" failOnNotice="true" failOnDeprecation="true">
-    <testsuites><testsuite name="Connector"><directory>tests</directory></testsuite></testsuites>
+    <testsuites>
+        <testsuite name="Connector"><directory>tests</directory><exclude>tests/MySQL</exclude></testsuite>
+        <testsuite name="MySQL"><directory>tests/MySQL</directory></testsuite>
+    </testsuites>
     <php><env name="APP_ENV" value="testing"/><env name="APP_DEBUG" value="true"/></php>
 </phpunit>

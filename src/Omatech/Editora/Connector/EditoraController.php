@@ -28,8 +28,11 @@ class EditoraController extends Controller
         $language = $request->route('language');
         $nice_url = $request->route('nice_url');
 
-        $preview = $this->editMode($request->input('req_info'));
-        $this->utils->setParams(['preview' => $preview]);
+        $req_info = $request->input('req_info');
+
+        if($req_info==1){
+            $this->utils->setParams(['preview'=>true]);
+        }
 
 
         /**
