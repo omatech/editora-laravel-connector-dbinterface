@@ -79,6 +79,8 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->app->bindIf(CacheVersion::class, ConfiguredCacheVersion::class);
         $this->app->singletonIf(ContentFreshness::class, fn () => new ContentFreshness());
 
+        // Before any connection opens: the sessions of this request read NOW() in the editors' zone.
+        DatabaseTimezone::apply($this->app['config']);
         $db = DoctrineConnection::fromLaravel(DB::connection()->getConfig());
 
         $this->app->bind('Extractor', function () use ($db) {

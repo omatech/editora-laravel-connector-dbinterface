@@ -16,6 +16,11 @@ return [
         ]*/
     ],
     'homeNiceUrl'        => false,
+    /*
+     * Zone in which editors type publishing dates. Every MySQL session uses it (as the offset of the moment), since Editora
+     * compares those dates with NOW() and Laravel Cloud's MySQL runs in UTC. Empty: the server's zone, as before.
+     */
+    'databaseTimezone'   => env('EDITORA_DATABASE_TIMEZONE', 'Europe/Madrid'),
     'availableLanguages' => ['ca', 'es'],
     'defaultLanguage'    => 'ca',
     'ignoreBrowserLanguage' => false,
