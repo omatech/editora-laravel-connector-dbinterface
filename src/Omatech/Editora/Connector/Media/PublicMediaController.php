@@ -26,7 +26,7 @@ final class PublicMediaController
     {
         $disk = $this->disk();
         if ($disk === null || !PublicMedia::allows($path)) {
-            return response('', 404);
+            return response('', 404)->header('Cache-Control', 'no-store');
         }
         try {
             $object = $this->fetch($disk, $request, $path);
@@ -103,7 +103,7 @@ final class PublicMediaController
     private function storageFailure(S3Exception $e): Response
     {
         if (in_array($e->getStatusCode(), [404, 416], true)) {
-            return response('', $e->getStatusCode());
+            return response('', $e->getStatusCode())->header('Cache-Control', 'no-store');
         }
         report($e);
 

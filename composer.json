@@ -1,11 +1,14 @@
 {
     "name": "omatech/editora-laravel-connector-dbinterface",
-    "description": "",
-    "minimum-stability":"dev",
+    "description": "Laravel frontend connector for Editora content and media",
+    "minimum-stability": "dev",
     "require": {
         "omatech/editora-dbinterface": "^1.8.0"
     },
     "require-dev": {
+        "aws/aws-sdk-php": "3.401.5",
+        "laravel/framework": "13.42.0",
+        "phpunit/phpunit": "13.4.6"
     },
     "suggest": {
         "aws/aws-sdk-php": "Required by Media\\PublicMediaController to serve media from a private S3 bucket"
@@ -21,5 +24,28 @@
                 "Omatech\\Editora\\Connector\\ConnectorServiceProvider"
             ]
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": false,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.5.12"
+        }
+    },
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "lint": "@php tests/lint.php",
+        "check": [
+            "@lint",
+            "@test",
+            "@composer validate --no-check-publish",
+            "@composer audit --locked"
+        ]
     }
 }
