@@ -53,6 +53,17 @@ final class PreviewAuthorizationTest extends TestCase
         $this->get('/ca/published?req_info=0')->assertOk()->assertJson(['preview' => false]);
     }
 
+    public function test_an_object_whose_class_has_no_page_controller_is_a_404_not_a_500(): void
+    {
+        $this->get('/ca/element-without-page')->assertNotFound();
+    }
+
+    public function test_without_a_not_found_exception_a_class_without_page_is_still_a_404(): void
+    {
+        config(['editora.notFoundHttpException' => 'Tests\\Fixtures\\MissingException']);
+        $this->get('/ca/element-without-page')->assertNotFound();
+    }
+
     public function test_public_pending_content_still_returns_404(): void
     {
         $this->get('/ca/pending')->assertNotFound();

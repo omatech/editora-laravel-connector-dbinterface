@@ -107,7 +107,17 @@ class EditoraController extends Controller
         /**
          *
          **/
-        $className = config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\') . $classTag;
+        $namespace = config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\');
+        $className = $namespace . $classTag;
+        // An object of a class without a page controller (a part shown only inside other pages) is not a page: not found,
+        // as an unknown URL, never a 500 from instantiating a class that does not exist.
+        if (!class_exists($className)) {
+            if (class_exists($exception)) {
+                throw new $exception;
+            }
+            $className = $namespace . 'Error404';
+            abort_unless(class_exists($className), 404);
+        }
         $class = new $className;
 
         $class->inst_id = (array_key_exists('id', $urlData)) ? $urlData['id'] : 1;
