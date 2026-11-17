@@ -5,6 +5,7 @@ namespace Omatech\Editora\Connector;
 use App;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Redirect;
 
 class EditoraController extends Controller
@@ -63,14 +64,12 @@ class EditoraController extends Controller
                     //$nice = $this->utils->get_nice_from_id(1, $currentLang);
                     //Redirect::to('/' . $currentLang . '/' . $nice)->send();
                     $nice = $this->utils->getInstanceLink(1, $currentLang);
-                    Redirect::to($nice, 301)->send();
-                    die;
+                    throw new HttpResponseException(Redirect::to($nice, 301));
                 } elseif (!$language && config('editora.homeNiceUrl') === false) {
                     if (!empty(config('editora.ignoreUrlLanguage')) && config('editora.ignoreUrlLanguage') === true  && $language == null) {
                         $language = config('editora.defaultLanguage');
                     } else {
-                        Redirect::to('/' . $currentLang . $request->getRequestUri(), 301)->send();
-                        die;
+                        throw new HttpResponseException(Redirect::to('/' . $currentLang . $request->getRequestUri(), 301));
                     }
                 } elseif ($language && config('editora.homeNiceUrl') === false) {
                     $nice_url = 'home';
