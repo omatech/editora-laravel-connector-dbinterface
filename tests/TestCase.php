@@ -24,11 +24,13 @@ abstract class TestCase extends FrameworkTestCase
         $app = Application::configure(basePath: $this->fixture)
             ->withProviders([ConnectorServiceProvider::class])
             ->withExceptions()
+            ->withMiddleware()
             ->withRouting(using: static function (): void {
                 Route::match(['GET', 'HEAD'], '/uploads/{path}', PublicMediaController::class)->where('path', '.*');
             })->create();
         $app->afterBootstrapping(LoadConfiguration::class, static function (Application $app): void {
             $app['config']->set([
+                'app.key' => 'base64:'.base64_encode(str_repeat('f', 32)),
                 'database.default' => 'sqlite',
                 'database.connections.sqlite' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
                 'cache.default' => 'array', 'session.driver' => 'array',

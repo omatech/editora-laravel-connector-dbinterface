@@ -28,11 +28,8 @@ class EditoraController extends Controller
         $language = $request->route('language');
         $nice_url = $request->route('nice_url');
 
-        $req_info = $request->input('req_info');
-
-        if($req_info==1){
-            $this->utils->setParams(['preview'=>true]);
-        }
+        $preview = $this->editMode($request->input('req_info'));
+        $this->utils->setParams(['preview' => $preview]);
 
 
         /**
@@ -148,7 +145,7 @@ class EditoraController extends Controller
             if (session()->has('user_id') && session()->get('user_id') != '') {
                 $preview = true;
             } else {
-                die('Not connected to CMS!');
+                abort(404);
             }
         }
 
