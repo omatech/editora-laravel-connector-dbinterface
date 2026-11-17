@@ -4,6 +4,7 @@ namespace Omatech\Editora\Connector\Cache;
 
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,10 +23,22 @@ use Throwable;
  *
  * A refresh that read the database before a publication and stored after it keeps serving that content
  * for at most one TTL, and no page rendered from it is stored meanwhile.
+ *
+ * A publishing date that passes changes public content too, without any write: the publication filter shows an object from
+ * its publishing_begins and hides it from its publishing_ends. With a store and a MySQL application database, the last such
+ * date counts as a publication at that second, and content read up to it is read again before it is served in every mode, so
+ * no copy outlives the date (PublishingDates). The dates are read from the database once and kept in the store until the next
+ * one passes, a publication is recorded or DATES_TTL goes by; every other request reads them with the publication, in the
+ * same round trip to the store.
  */
 final class ContentFreshness
 {
     private const KEY = 'editora-cache:published-at';
+    /** The publishing dates as last read: when they were read, the last one passed (0 for none) and the next (null for none). */
+    private const DATES = 'editora-cache:publishing-dates';
+    private const NO_DATES = ['checked' => 0, 'passed' => 0, 'next' => null];
+    /** Dates written without a recorded publication, as console imports do, are read within this many seconds. */
+    private const DATES_TTL = 60;
     private const ADMIN = 'Omatech\Editora\Admin\Controller';
     /** Admin tables that no public page reads: sign-in, favourites, recent items, roles and permissions. */
     private const PRIVATE_TABLES = ['omp_users', 'omp_user_instances', 'omp_roles', 'omp_roles_classes', 'omp_instances_roles'];
@@ -81,15 +94,66 @@ final class ContentFreshness
         return !preg_match(self::TARGET, $sql, $match) || !in_array(strtolower($match[1]), self::PRIVATE_TABLES, true);
     }
 
-    /** Time of the last publication, read once per request; 0 when publications are not tracked. */
+    /** Time of the last publication or publishing date passed, read once per request; 0 when publications are not tracked. */
     public function lastPublication(): int
     {
-        $request = request();
-        if (!$request->attributes->has(self::KEY)) {
-            $request->attributes->set(self::KEY, $this->store === null ? 0 : (int) $this->store->get(self::KEY, 0));
+        $passed = $this->dates()['passed'];
+
+        return max(request()->attributes->get(self::KEY), $passed);
+    }
+
+    /** Seconds that what is cached now may be kept, at most $ttl: never past the next publishing date, nothing while it is unknown. */
+    public function lifetime(int $ttl): int
+    {
+        $next = $this->dates()['next'];
+
+        return $next === null ? $ttl : max(0, min($ttl, $next - Carbon::now()->getTimestamp()));
+    }
+
+    /** The publishing dates of this request, read with the last publication, in one round trip to the store, once. */
+    private function dates(): array
+    {
+        $attributes = request()->attributes;
+        if (!$attributes->has(self::DATES)) {
+            $stored = $this->store === null ? [] : [...$this->store->getMultiple([self::KEY, self::DATES])];
+            if (!$attributes->has(self::KEY)) {
+                $attributes->set(self::KEY, (int) ($stored[self::KEY] ?? 0));
+            }
+            $attributes->set(self::DATES, $this->currentDates($stored[self::DATES] ?? null, $attributes->get(self::KEY)));
         }
 
-        return $request->attributes->get(self::KEY);
+        return $attributes->get(self::DATES);
+    }
+
+    /** The stored dates while no date passed and no publication followed them; otherwise read again. */
+    private function currentDates(mixed $stored, int $published): array
+    {
+        $database = $this->store === null ? null : app('db')->connection();
+        if (!$database instanceof Connection || !PublishingDates::readable($database)) {
+            return self::NO_DATES;
+        }
+        $now = Carbon::now()->getTimestamp();
+        if (is_array($stored) && $stored['checked'] > $published && ($stored['next'] ?? PHP_INT_MAX) > $now) {
+            return $stored;
+        }
+
+        return $this->readDates($database, $now);
+    }
+
+    private function readDates(Connection $database, int $now): array
+    {
+        try {
+            $around = PublishingDates::around($database);
+        } catch (Throwable $e) {
+            report($e);
+            // Unknown for this request only: content keeps its own rules and no page is stored.
+            return ['checked' => $now, 'passed' => 0, 'next' => $now];
+        }
+        $dates = ['checked' => $now, 'passed' => $around['passed'] === null ? 0 : $now + $around['passed'],
+            'next' => $around['next'] === null ? null : $now + $around['next']];
+        $this->store->put(self::DATES, $dates, min(self::DATES_TTL, ($dates['next'] ?? PHP_INT_MAX) - $now));
+
+        return $dates;
     }
 
     /** Records a publication now, at most once per second and request; a failure throws. */
@@ -122,10 +186,15 @@ final class ContentFreshness
         return $readAt > $this->lastPublication() && $readAt + $ttl > Carbon::now()->getTimestamp();
     }
 
-    /** Whether content read at $readAt must be read again before it is served: in reload mode, once a publication followed the read. */
+    /**
+     * Whether content read at $readAt must be read again before it is served: once a publishing date followed the read, and in
+     * reload mode once a publication did.
+     */
     public function mustReload(int $readAt): bool
     {
-        return $this->reload && $this->lastPublication() > 0 && $readAt <= $this->lastPublication();
+        $after = $this->reload ? $this->lastPublication() : $this->dates()['passed'];
+
+        return $after > 0 && $readAt <= $after;
     }
 
     public function servedStale(): void

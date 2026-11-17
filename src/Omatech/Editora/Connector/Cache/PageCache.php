@@ -12,15 +12,17 @@ use Throwable;
 
 /**
  * Serves /{language} and /{language}/{slug} pages to every visitor from one stored copy per
- * CacheVersion, for at most editora-cache.page.ttl seconds. A page is stored only when another visitor
+ * CacheVersion, for at most editora-cache.page.ttl seconds and never past the next publishing date. A page is stored only when another visitor
  * may receive it: a complete 200 HTML document without the visitor's CSRF token, a nonce or a
  * VarDumper dump, rendered for a session that holds nothing but language and navigation, and adding no
  * header or cookie the copy would lose. Register it as global middleware after any middleware whose
  * headers every response needs.
  *
  * Pages rendered from content that was not fresh are answered as STALE and not stored, and the key
- * includes the last publication, so a publication reaches visitors once its content has refreshed. It
- * also includes the build, so a deploy never replays pages rendered by the previous code.
+ * includes the last publication, so a publication reaches visitors once its content has refreshed. A
+ * publishing date that passes counts as a publication at that second (ContentFreshness), and no page is
+ * kept past the next one, or stored while the dates cannot be read. The key also includes the build, so a
+ * deploy never replays pages rendered by the previous code.
  *
  * Editora admin sessions never get or leave the shared copy: their pages carry the edit tools
  * (@editora_scripts). The session is only known once the application has run, so every response to one
@@ -176,9 +178,14 @@ final class PageCache
         $ttl = (int) config('editora-cache.page.ttl');
         $window = 'page-budget:'.intdiv(time(), $ttl);
         try {
+            // A publishing date may change the page without any write: it is not kept past the next one.
+            $lifetime = $this->freshness->lifetime($ttl);
+            if ($lifetime <= 0) {
+                return;
+            }
             $store->add($window, 0, 2 * $ttl);
             if ($store->increment($window, strlen(implode('', $entry))) <= config('editora-cache.page.budget_bytes')) {
-                $store->put($key, $entry, $ttl);
+                $store->put($key, $entry, $lifetime);
             }
         } catch (Throwable $e) {
             report($e);

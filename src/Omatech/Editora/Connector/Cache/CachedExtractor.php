@@ -15,7 +15,8 @@ use ReflectionFunction;
  * Caches complete public content graphs, including their pagination state, for the extractor methods
  * listed in $methods. An entry is fresh for $ttl seconds, never past the last publication, and up to
  * $staleTtl is served at once and refreshed after the response; serving it marks the request as stale for
- * the page cache. Nested calls, preview, debug and avoid_cache always read the database.
+ * the page cache. An entry read before a publishing date that has passed is read again before it is
+ * served (ContentFreshness). Nested calls, preview, debug and avoid_cache always read the database.
  */
 class CachedExtractor extends Extractor
 {
