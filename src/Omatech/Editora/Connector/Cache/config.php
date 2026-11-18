@@ -17,9 +17,11 @@ return [
         'store' => env('CMS_CACHE_STORE'),
     ],
 
-    // editora:warm, which visits every published page to fill the caches.
+    // editora:warm, which visits the published pages to fill the caches. Of the classes in editora.publicationClasses
+    // (news, posts, events...) it visits only those published in the last recent_months months.
     'warm' => [
         'timeout' => (int) env('CMS_CACHE_WARM_TIMEOUT', 60),
+        'recent_months' => 3,
     ],
 
     // Whole public pages served by the PageCache middleware.

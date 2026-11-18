@@ -245,15 +245,24 @@ Editora admin sessions never get or leave the shared copy, because their pages c
 
 ## Warming the caches
 
-`php artisan editora:warm` visits every published page once, through the site's own URL, so no visitor pays for an empty cache. It requests `/{language}` for each language in `editora.availableLanguages` (or the home instance's nice URL when `homeNiceUrl` is true), then `/{language}/{nice_url}` for every instance that is published now (status `O`, inside its publishing dates). An empty content cache is filled; content past its TTL is served at once and refreshed after the answer; pages that `PageCache` may share are stored. It reports the status and `X-Page-Cache` counts, names every page that answered 4xx, 5xx or nothing, and fails when any answered 5xx or nothing.
+`php artisan editora:warm` visits the published pages once, through the site's own URL, so no visitor pays for an empty cache. It requests `/{language}` for each language in `editora.availableLanguages` (or the home instance's nice URL when `homeNiceUrl` is true), then `/{language}/{nice_url}` for every instance that is published now (status `O`, inside its publishing dates) and is a page: an instance whose class has no page controller (see `EditoraController::pageController()`) answers 404 and is skipped.
+
+Dated publications are warmed only while they are recent. List their class tags (`omp_classes.tag`) in `config/editora.php`, and the warm visits only those published in the last `editora-cache.warm.recent_months` months (3); an older one is still cached when someone visits it:
+
+```php
+// config/editora.php
+'publicationClasses' => ['News', 'Post'],
+```
+
+Without `publicationClasses` every page is warmed, whatever its date. Years of news can take most of each pass and of the page cache for pages that are rarely read. An empty content cache is filled; content past its TTL is served at once and refreshed after the answer; pages that `PageCache` may share are stored. It reports the status and `X-Page-Cache` counts, names every page that answered 4xx, 5xx or nothing, and fails when any answered 5xx or nothing.
 
 `--url=` visits another base URL (default `APP_URL`); `CMS_CACHE_WARM_TIMEOUT` (60 s) bounds each request. Pages are visited one after another, so a run never adds more than one page render at a time to the site.
 
-Schedule it so the content never goes cold, for example every hour, inside the content's `CMS_CACHE_STALE_TTL` (a day) and the page TTL, and run it after changing `CMS_CACHE_VERSION`:
+Schedule it more often than a page lives in the page cache (an hour), so a page that expires or is renewed by a publication is cold for minutes, not for the rest of the hour, and run it after changing `CMS_CACHE_VERSION`:
 
 ```php
 // routes/console.php
-Schedule::command('editora:warm')->hourly()->withoutOverlapping();
+Schedule::command('editora:warm')->everyTenMinutes()->withoutOverlapping();
 ```
 
 ## Media from a private bucket

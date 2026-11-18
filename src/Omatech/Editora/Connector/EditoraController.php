@@ -101,20 +101,14 @@ class EditoraController extends Controller
             throw new $exception;
         }
 
-        $classTag = str_replace('_', '', ucwords($urlData['class_tag'], '_'));
-
-        /**
-         *
-         **/
-        $namespace = config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\');
-        $className = $namespace . $classTag;
         // An object of a class without a page controller (a part shown only inside other pages) is not a page: not found,
         // as an unknown URL, never a 500 from instantiating a class that does not exist.
-        if (!class_exists($className)) {
+        $className = self::pageController($urlData['class_tag']);
+        if ($className === null) {
             if (class_exists($exception)) {
                 throw new $exception;
             }
-            $className = $namespace . 'Error404';
+            $className = config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\') . 'Error404';
             abort_unless(class_exists($className), 404);
         }
         $class = new $className;
@@ -239,5 +233,16 @@ class EditoraController extends Controller
         }
 
         return $metaLanguages;
+    }
+
+    /**
+     * The page controller of an Editora class (omp_classes.tag Foo_Bar is {editora.controllersNamespace}FooBar), or null
+     * when the class has none: its objects are parts shown inside other pages, and their URLs answer 404.
+     */
+    public static function pageController(string $classTag): ?string
+    {
+        $className = config('editora.controllersNamespace', 'App\\Http\\Controllers\\Editora\\') . str_replace('_', '', ucwords($classTag, '_'));
+
+        return class_exists($className) ? $className : null;
     }
 }

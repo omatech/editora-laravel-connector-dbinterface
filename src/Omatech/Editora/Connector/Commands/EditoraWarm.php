@@ -7,11 +7,17 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Omatech\Editora\Connector\EditoraController;
 
 /**
- * Visits every published page once, through the site's own URL, so the content, static text and page caches
+ * Visits the published pages once, through the site's own URL, so the content, static text and page caches
  * are warm before visitors arrive: an empty content cache costs the first visitor a full render, and content
  * past its TTL is refreshed after the answer. Run it on a schedule and after changing CMS_CACHE_VERSION.
+ *
+ * Only pages the site serves are visited (an object of a class without a page controller answers 404), and of the
+ * classes in editora.publicationClasses (news, posts, events...) only those published in the last
+ * editora-cache.warm.recent_months months: an older publication is cached when someone visits it, instead of
+ * taking every pass and the page cache with years of rarely read pages.
  */
 final class EditoraWarm extends Command
 {
@@ -20,7 +26,7 @@ final class EditoraWarm extends Command
 
     protected $signature = 'editora:warm {--url= : Base URL of the site to visit (default: APP_URL)}';
 
-    protected $description = 'Visit every published Editora page once to warm the content and page caches';
+    protected $description = 'Visit the published Editora pages once to warm the content and page caches';
 
     public function handle(): int
     {
@@ -42,7 +48,7 @@ final class EditoraWarm extends Command
     }
 
     /**
-     * Home pages first, in the order of editora.availableLanguages, then every published nice URL.
+     * Home pages first, in the order of editora.availableLanguages, then the published nice URLs of the pages to warm.
      *
      * @return list<string>
      */
@@ -56,7 +62,9 @@ final class EditoraWarm extends Command
         foreach ($this->publishedNiceUrls($languages) as $row) {
             $path = '/'.$row->language.'/'.rawurlencode($row->niceurl);
             if ((int) $row->inst_id !== self::HOME) {
-                $pages[] = $path;
+                if (EditoraController::pageController((string) $row->tag) !== null) {
+                    $pages[] = $path;
+                }
             } elseif ($homeNiceUrl) {
                 $homes[$row->language] = $path;
             }
@@ -69,16 +77,21 @@ final class EditoraWarm extends Command
 
     private function publishedNiceUrls(array $languages): iterable
     {
-        $now = Carbon::now()->toDateTimeString();
+        $now = Carbon::now();
+        $publications = array_values((array) config('editora.publicationClasses', []));
+        $since = $now->copy()->subMonths((int) config('editora-cache.warm.recent_months'))->toDateTimeString();
+        $now = $now->toDateTimeString();
 
         return DB::table('omp_niceurl as n')
             ->join('omp_instances as i', 'i.id', '=', 'n.inst_id')
+            ->join('omp_classes as c', 'c.id', '=', 'i.class_id')
             ->where('i.status', 'O')
             ->where(fn ($query) => $query->whereNull('i.publishing_begins')->orWhere('i.publishing_begins', '<=', $now))
             ->where(fn ($query) => $query->whereNull('i.publishing_ends')->orWhere('i.publishing_ends', '>', $now))
+            ->where(fn ($query) => $query->whereNotIn('c.tag', $publications)->orWhere('i.publishing_begins', '>=', $since))
             ->whereIn('n.language', $languages)
             ->orderBy('n.language')->orderBy('n.niceurl')
-            ->get(['n.inst_id', 'n.language', 'n.niceurl']);
+            ->get(['n.inst_id', 'n.language', 'n.niceurl', 'c.tag']);
     }
 
     /** @return array{0: string, 1: int, 2: string} The URL, its HTTP status (0 without an answer) and X-Page-Cache. */
