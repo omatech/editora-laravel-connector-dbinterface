@@ -19,9 +19,9 @@ if (!function_exists('cookie_not_exist')) {
 if (!function_exists('_geolocation')) {
 
 	function _geolocation($location) {
-		$loc = explode('@', $location);
+		$loc = explode('@', $location ?? '');
 		$loc = explode(':', $loc[0]);
-		$geolocation = array('lat' => $loc[0], 'lng' => $loc[1]);
+		$geolocation = array('lat' => $loc[0], 'lng' => $loc[1] ?? null);
 
 		return $geolocation;
 	}
@@ -31,9 +31,9 @@ if (!function_exists('_geolocation')) {
 if (!function_exists('_mapGeolocation')) {
 
 	function _mapGeolocation($location) {
-		$loc = explode('@', $location);
+		$loc = explode('@', $location ?? '');
 		$loc = explode(':', $loc[0]);
-		$geolocation = $loc[0] . ',' . $loc[1];
+		$geolocation = $loc[0] . ',' . ($loc[1] ?? '');
 
 		return $geolocation;
 	}
@@ -43,7 +43,7 @@ if (!function_exists('_mapGeolocation')) {
 if (!function_exists('_link')) {
 
 	function _link($link) {
-		if (stristr($link, 'http')) {
+		if (stristr($link ?? '', 'http')) {
 			return $link;
 		} else {
 			return 'http://' . $link;
@@ -85,7 +85,7 @@ if (!function_exists('_parsetext')) {
             $list_class = ' class="' . $list_class . '"';
         }
 
-        $text = str_replace('<ul>', '</p><ul ' . $list_class . '>', $text);
+        $text = str_replace('<ul>', '</p><ul ' . $list_class . '>', $text ?? '');
         $text = str_replace('</ul>', '</ul><p' . $class . '>', $text);
 
         $text = str_replace('<ol>', '</p><ol ' . $list_class . '>', $text);
@@ -132,7 +132,7 @@ if (!function_exists('_parseparagraph')) {
 if (!function_exists('_alttext')) {
 
 	function _alttext($text) {
-		return strip_tags(str_replace('"', "'", $text));
+		return strip_tags(str_replace('"', "'", $text ?? ''));
 	}
 
 }
@@ -140,7 +140,7 @@ if (!function_exists('_alttext')) {
 if (!function_exists('_videolink')) {
 
 	function _videolink($video) {
-		$player = explode(':', $video);
+		$player = explode(':', $video ?? '');
 		switch ($player[0]) {
 			case 'youtube':
 				$link = 'https://www.youtube.com/watch?v=' . $player[1];
@@ -161,8 +161,8 @@ if (!function_exists('_videoembed')) {
 
 	function _videoembed($video) {
 
-		$arg_vid = explode(':', $video);
-		$id_video = $arg_vid[1];
+		$arg_vid = explode(':', $video ?? '');
+		$id_video = $arg_vid[1] ?? null;
 
 		switch ($arg_vid[0]) {
 			case 'youtube':
@@ -197,7 +197,7 @@ if (!function_exists('_get_nice_from_language')) {
 if (!function_exists('_getTextCutted')) {
 
     function _getTextCutted($titol, $caracters = 200, $tags = ''){
-        $titol = strip_tags($titol, $tags);
+        $titol = strip_tags($titol ?? '', $tags);
         $res = "";
         $titolx = rtrim($titol, " \t.");
 
@@ -357,7 +357,7 @@ if (!function_exists('_lang')) {
 
 if (!function_exists('_altimaginatortext')) {
     function _altimaginatortext($text) {
-        $text =  strip_tags(str_replace('"', "", $text));
+        $text =  strip_tags(str_replace('"', "", $text ?? ''));
         return strip_tags(str_replace("'", "", $text));
     }
 
