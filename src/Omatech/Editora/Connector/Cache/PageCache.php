@@ -29,8 +29,8 @@ use Throwable;
  * sets EDITOR_COOKIE, and requests carrying it skip the cache until the session no longer has a role.
  *
  * Responses carry no-store: an edge cache would otherwise keep pages that a new version no longer
- * reaches. Stored bytes per window are capped because the store may be a Valkey that several
- * applications share and that does not evict.
+ * reaches. Pages are limited (what may be shared, editora-cache.page.max_bytes each, the TTL and the
+ * publishing dates), not the bytes of the store: the Valkey behind it autoscales.
  */
 final class PageCache
 {
@@ -176,15 +176,10 @@ final class PageCache
     {
         $entry = [(string) $response->headers->get('Content-Type'), (string) $response->getContent()];
         $ttl = (int) config('editora-cache.page.ttl');
-        $window = 'page-budget:'.intdiv(time(), $ttl);
         try {
             // A publishing date may change the page without any write: it is not kept past the next one.
             $lifetime = $this->freshness->lifetime($ttl);
-            if ($lifetime <= 0) {
-                return;
-            }
-            $store->add($window, 0, 2 * $ttl);
-            if ($store->increment($window, strlen(implode('', $entry))) <= config('editora-cache.page.budget_bytes')) {
+            if ($lifetime > 0) {
                 $store->put($key, $entry, $lifetime);
             }
         } catch (Throwable $e) {

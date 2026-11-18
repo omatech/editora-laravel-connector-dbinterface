@@ -241,7 +241,7 @@ protected $middleware = [
 
 Editora admin sessions never get or leave the shared copy, because their pages carry the edit tools (`@editora_scripts`). The session is only known after the application has run, so every response to a session with a role sets the `editora_editor` cookie (renewed like the session, removed once the role is gone), and requests carrying it skip the cache.
 
-`PAGE_CACHE_STORE` selects the store and `PAGE_CACHE_ENABLED=false` turns it off.
+`PAGE_CACHE_STORE` selects the store and `PAGE_CACHE_ENABLED=false` turns it off. Pages are limited, not the store: a page over `editora-cache.page.max_bytes` (512 KB) is not stored, and there is no limit on the bytes stored, because the Valkey behind it autoscales.
 
 ## Warming the caches
 

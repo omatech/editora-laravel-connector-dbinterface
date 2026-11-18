@@ -29,7 +29,7 @@ return [
         'enabled' => env('PAGE_CACHE_ENABLED', true),
         'store' => env('PAGE_CACHE_STORE'),
         'ttl' => (int) env('PAGE_CACHE_TTL', 3600),
+        // A larger page is not stored. There is no limit on the bytes of the store: its Valkey autoscales.
         'max_bytes' => 524288,
-        'budget_bytes' => 33554432,
     ],
 ];
