@@ -15,8 +15,8 @@ use ReflectionFunction;
  * Caches complete public content graphs, including their pagination state, for the extractor methods
  * listed in $methods. An entry is fresh for $ttl seconds, never past the last publication, and up to
  * $staleTtl is served at once and refreshed after the response; serving it marks the request as stale for
- * the page cache. An entry read before a publishing date that has passed is read again before it is
- * served (ContentFreshness). Nested calls, preview, debug and avoid_cache always read the database.
+ * the page cache. An entry read before a publishing date that has passed, or past its TTL for editora:warm,
+ * is read again before it is served (ContentFreshness). Nested calls, preview, debug and avoid_cache always read the database.
  */
 class CachedExtractor extends Extractor
 {
@@ -155,11 +155,11 @@ class CachedExtractor extends Extractor
         return $entry['result'];
     }
 
-    /** Cache::flexible(), except that in reload mode a copy read before the last publication is read again at once. */
+    /** Cache::flexible(), except that a copy ContentFreshness::mustReload() rejects is read again at once. */
     private function flexible(string $key, array $ttl, Closure $load): array
     {
         $entry = $this->cache->flexible($key, $ttl, $load, ['seconds' => 30]);
-        if ($this->freshness?->mustReload($entry['read'] ?? 0)) {
+        if ($this->freshness?->mustReload($entry['read'] ?? 0, $this->ttl)) {
             // Without a value flexible() reads at once; the refresh it deferred finds a newer copy and stands down.
             $this->cache->forget($key);
             $entry = $this->cache->flexible($key, $ttl, $load, ['seconds' => 30]);

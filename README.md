@@ -254,7 +254,7 @@ Dated publications are warmed only while they are recent. List their class tags 
 'publicationClasses' => ['News', 'Post'],
 ```
 
-Without `publicationClasses` every page is warmed, whatever its date. Years of news can take most of each pass and of the page cache for pages that are rarely read. An empty content cache is filled; content past its TTL is served at once and refreshed after the answer; pages that `PageCache` may share are stored. It reports the status and `X-Page-Cache` counts, names every page that answered 4xx, 5xx or nothing, and fails when any answered 5xx or nothing.
+Without `publicationClasses` every page is warmed, whatever its date. Years of news can take most of each pass and of the page cache for pages that are rarely read. An empty content cache is filled, and so is content past its TTL: each pass finds most content older than `CMS_CACHE_TTL`, and a visitor would get it at once and leave the page unstored (`STALE`), so the warm's requests carry `X-Editora-Warm` with a token derived from `APP_KEY` (`ContentFreshness::warmToken()`) and read it again before the answer. Pages that `PageCache` may share are stored. A request without that token never waits for such a read. It reports the status and `X-Page-Cache` counts, names every page that answered 4xx, 5xx or nothing, and fails when any answered 5xx or nothing.
 
 `--url=` visits another base URL (default `APP_URL`); `CMS_CACHE_WARM_TIMEOUT` (60 s) bounds each request. Pages are visited one after another, so a run never adds more than one page render at a time to the site.
 

@@ -42,7 +42,7 @@ class CachedStaticTexts
         $ttl = [$this->freshness?->freshSeconds($this->ttl) ?? $this->ttl, max($this->ttl, $this->staleTtl)];
         $read = fn () => ['read' => Carbon::now()->getTimestamp(), 'texts' => StaticTexts::todos_lang($locale)];
         $entry = $this->cache->flexible($key, $ttl, $read, ['seconds' => 30]);
-        if ($this->freshness?->mustReload($entry['read'])) {
+        if ($this->freshness?->mustReload($entry['read'], $this->ttl)) {
             // Without a value flexible() reads at once; the refresh it deferred finds a newer copy and stands down.
             $this->cache->forget($key);
             $entry = $this->cache->flexible($key, $ttl, $read, ['seconds' => 30]);

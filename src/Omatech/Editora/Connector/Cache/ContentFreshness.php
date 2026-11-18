@@ -30,6 +30,11 @@ use Throwable;
  * no copy outlives the date (PublishingDates). The dates are read from the database once and kept in the store until the next
  * one passes, a publication is recorded or DATES_TTL goes by; every other request reads them with the publication, in the
  * same round trip to the store.
+ *
+ * editora:warm visits each page once per pass, so the content it finds is past its TTL whenever the pass interval is longer.
+ * Served at once, that content would leave every warmed page unstored; requests carrying WARM_HEADER with warmToken() read
+ * it again before it is served instead, so the warm stores the pages it visits. Only the application's key yields the
+ * token: a visitor never waits for that read.
  */
 final class ContentFreshness
 {
@@ -40,6 +45,8 @@ final class ContentFreshness
     /** Dates written without a recorded publication, as console imports do, are read within this many seconds. */
     private const DATES_TTL = 60;
     private const ADMIN = 'Omatech\Editora\Admin\Controller';
+    /** The header editora:warm sends, with warmToken() as its value. */
+    public const WARM_HEADER = 'X-Editora-Warm';
     /** Admin tables that no public page reads: sign-in, favourites, recent items, roles and permissions. */
     private const PRIVATE_TABLES = ['omp_users', 'omp_user_instances', 'omp_roles', 'omp_roles_classes', 'omp_instances_roles'];
     private const WRITE = '/^\s*(?:INSERT|REPLACE|UPDATE|DELETE|TRUNCATE|ALTER|DROP|CREATE|RENAME)\b/i';
@@ -47,7 +54,7 @@ final class ContentFreshness
         .'|UPDATE(?:\s+(?:LOW_PRIORITY|IGNORE))*|DELETE(?:\s+(?:LOW_PRIORITY|QUICK|IGNORE))*\s+FROM)\s+`?(\w+)`?[\s(]/i';
 
     /** A null store means publications are not tracked: content is fresh for its whole TTL. */
-    public function __construct(private ?Repository $store = null, private bool $reload = false)
+    public function __construct(private ?Repository $store = null, private bool $reload = false, private bool $warm = false)
     {
     }
 
@@ -61,6 +68,7 @@ final class ContentFreshness
         $app->scoped(self::class, fn ($app) => new self(
             $app['cache']->store(config('editora-cache.content.store')),
             self::reloads($app['request']),
+            self::warms($app['request']),
         ));
         $app['events']->listen(QueryExecuted::class, function (QueryExecuted $query) use ($app): void {
             if ($app['request']->route()?->getControllerClass() !== self::ADMIN || !self::changesPublicContent($query->sql)) {
@@ -83,6 +91,19 @@ final class ContentFreshness
             'editors' => $request->cookies->has(PageCache::EDITOR_COOKIE),
             default => false,
         };
+    }
+
+    /** The value of WARM_HEADER for this application: derived from its key, so only its own editora:warm sends it. */
+    public static function warmToken(): string
+    {
+        return hash_hmac('sha256', 'editora:warm', (string) config('app.key'));
+    }
+
+    private static function warms(Request $request): bool
+    {
+        $token = $request->headers->get(self::WARM_HEADER);
+
+        return is_string($token) && (string) config('app.key') !== '' && hash_equals(self::warmToken(), $token);
     }
 
     public static function changesPublicContent(string $sql): bool
@@ -187,11 +208,14 @@ final class ContentFreshness
     }
 
     /**
-     * Whether content read at $readAt must be read again before it is served: once a publishing date followed the read, and in
-     * reload mode once a publication did.
+     * Whether content read at $readAt for a $ttl-second cache must be read again before it is served: once a publishing date
+     * followed the read, in reload mode once a publication did, and for editora:warm once it is not fresh.
      */
-    public function mustReload(int $readAt): bool
+    public function mustReload(int $readAt, int $ttl): bool
     {
+        if ($this->warm && !$this->fresh($readAt, $ttl)) {
+            return true;
+        }
         $after = $this->reload ? $this->lastPublication() : $this->dates()['passed'];
 
         return $after > 0 && $readAt <= $after;

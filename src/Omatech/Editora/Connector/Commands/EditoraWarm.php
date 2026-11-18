@@ -7,12 +7,14 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Omatech\Editora\Connector\Cache\ContentFreshness;
 use Omatech\Editora\Connector\EditoraController;
 
 /**
  * Visits the published pages once, through the site's own URL, so the content, static text and page caches
- * are warm before visitors arrive: an empty content cache costs the first visitor a full render, and content
- * past its TTL is refreshed after the answer. Run it on a schedule and after changing CMS_CACHE_VERSION.
+ * are warm before visitors arrive: an empty content cache costs the first visitor a full render. Content past its
+ * TTL, as a pass usually finds it, is read again before the answer (ContentFreshness::WARM_HEADER), so the page
+ * is stored. Run it on a schedule and after changing CMS_CACHE_VERSION.
  *
  * Only pages the site serves are visited (an object of a class without a page controller answers 404), and of the
  * classes in editora.publicationClasses (news, posts, events...) only those published in the last
@@ -98,7 +100,8 @@ final class EditoraWarm extends Command
     private function visit(string $url): array
     {
         try {
-            $response = Http::timeout((int) config('editora-cache.warm.timeout'))->withUserAgent('editora-warm')->get($url);
+            $response = Http::timeout((int) config('editora-cache.warm.timeout'))->withUserAgent('editora-warm')
+                ->withHeaders([ContentFreshness::WARM_HEADER => ContentFreshness::warmToken()])->get($url);
 
             return [$url, $response->status(), $response->header('X-Page-Cache') ?: 'none'];
         } catch (ConnectionException) {

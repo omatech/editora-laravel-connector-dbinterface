@@ -18,7 +18,7 @@ final class ContentFreshnessTest extends TestCase
         $freshness = new ContentFreshness(Cache::store());
 
         self::assertSame(0, $freshness->lastPublication());
-        self::assertFalse($freshness->mustReload(1));
+        self::assertFalse($freshness->mustReload(1, 60));
         self::assertSame(0, $queries);
     }
 }
