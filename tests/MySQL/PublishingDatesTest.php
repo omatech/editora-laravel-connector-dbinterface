@@ -186,6 +186,21 @@ final class PublishingDatesTest extends TestCase
         self::assertSame([self::START + self::ENDS, self::START + self::BEGINS], $this->pageExpiries());
     }
 
+    public function test_a_day_long_ttl_never_keeps_a_page_past_the_next_publishing_date(): void
+    {
+        config(['editora-cache.page.ttl' => 86400]);
+        $later = self::BEGINS + 7200;
+        $this->object(14, 'Later', 'O', 0, self::START + $later);
+        $this->servePages();
+        $this->at(self::BEGINS + 10);
+        $this->page('Always,Later,Upcoming')->assertHeader('X-Page-Cache', 'MISS');
+        self::assertSame([self::START + $later], $this->pageExpiries());
+        // No date is ahead any more: the copy lives the whole day.
+        $this->at($later + 10);
+        $this->page('Always,Upcoming')->assertHeader('X-Page-Cache', 'MISS');
+        self::assertSame([self::START + $later, self::START + $later + 10 + 86400], $this->pageExpiries());
+    }
+
     public function test_the_dates_are_read_once_until_one_passes_an_editor_publishes_or_a_minute_goes_by(): void
     {
         $reads = 0;

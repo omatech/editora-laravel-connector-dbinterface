@@ -9,7 +9,7 @@ use Omatech\Editora\Connector\Cache\PageCache;
 /**
  * The page cache limits pages (what may be shared, at most editora-cache.page.max_bytes each, for its TTL and never past
  * a publishing date), not the bytes of the cache: the Valkey behind it autoscales, so a page is stored however many bytes
- * other pages took before it.
+ * other pages took before it. editora:warm asks stored() whether a URL has a copy before visiting it.
  */
 final class PageCacheStoreTest extends TestCase
 {
@@ -35,5 +35,21 @@ final class PageCacheStoreTest extends TestCase
 
         self::assertSame('MISS', $this->get('/ca/large')->headers->get('X-Page-Cache'));
         self::assertSame('MISS', $this->get('/ca/large')->headers->get('X-Page-Cache'));
+    }
+
+    public function test_stored_tells_whether_the_next_request_for_a_url_replays_a_copy(): void
+    {
+        $pages = $this->app->make(PageCache::class);
+        self::assertFalse($pages->stored('http://localhost/ca/news'));
+
+        self::assertSame('MISS', $this->get('/ca/news')->headers->get('X-Page-Cache'));
+        self::assertTrue($pages->stored('http://localhost/ca/news'));
+        // Another page, scheme or host is another copy; a query string or a path PageCache does not serve has none.
+        foreach (['http://localhost/ca/other', 'https://localhost/ca/news', 'http://other.test/ca/news',
+            'http://localhost/ca/news?page=2', 'http://localhost/uploads/news'] as $url) {
+            self::assertFalse($pages->stored($url), $url);
+        }
+        config(['editora-cache.version' => 'v2']);
+        self::assertFalse($pages->stored('http://localhost/ca/news'));
     }
 }

@@ -5,6 +5,7 @@ namespace Tests\MySQL;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -21,15 +22,17 @@ use Omatech\Editora\Connector\DoctrineConnection;
 use Tests\TestCase;
 
 /**
- * editora:warm visits each page once per pass, every ten minutes, so the content it finds is always past its 60-second TTL.
- * A visitor gets such content at once and it is refreshed after the response, which leaves the page unstored (STALE); the
- * warm reads it again before it is served instead, so every pass stores the pages whose copy expired. Each page reads its
- * own content, as every Editora page reads its own object.
+ * editora:warm visits only the pages without a stored copy, so the content it finds is past its 60-second TTL whenever it
+ * visits one. A visitor gets such content at once and it is refreshed after the response, which leaves the page unstored
+ * (STALE); the warm reads it again before it is served instead, so every pass stores the pages whose copy expired. Each page
+ * reads its own content, as every Editora page reads its own object. With --if-changed a pass runs only once a publication,
+ * a publishing date or a deploy changed the pages, and until a pass stored every page it could.
  */
 final class WarmedPagesTest extends TestCase
 {
     /** 2026-11-17 10:00:00 UTC. */
     private const START = 1794909600;
+    private const PAGES = ['http://localhost/ca', 'http://localhost/ca/about'];
 
     private Connection $content;
 
@@ -55,14 +58,19 @@ final class WarmedPagesTest extends TestCase
         ContentFreshness::register($this->app);
         $this->app->make(HttpKernel::class)->pushMiddleware(PageCache::class);
         Route::get('/ca/{slug?}', fn (?string $slug = null) => response('<!doctype html><html><body>'.$this->names($slug === null ? 1 : 2).'</body></html>'));
-        // The warm's requests reach this application, with the headers it sends.
+        $this->at(0);
+    }
+
+    /** A new HTTP client, as each run has, whose requests reach this application with the headers the warm sends. */
+    private function site(): void
+    {
+        Http::swap(new HttpFactory($this->app['events']));
         Http::fake(function (ClientRequest $request) {
             $this->app->forgetScopedInstances();
             $response = $this->get($request->url(), array_map(fn (array $values) => $values[0], $request->headers()));
 
             return Http::response($response->getContent(), $response->getStatusCode(), $response->headers->all());
         });
-        $this->at(0);
     }
 
     protected function tearDown(): void
@@ -80,6 +88,7 @@ final class WarmedPagesTest extends TestCase
         $this->content->executeStatement('SET TIMESTAMP = '.$now);
         $this->app->forgetScopedInstances();
         $this->app->instance('request', Request::create('/'));
+        $this->site();
     }
 
     /** What the page of class $class shows, read through the cached extractor as the application registers it. */
@@ -91,14 +100,30 @@ final class WarmedPagesTest extends TestCase
         return implode(',', array_map(fn (array $instance) => $instance['metadata']['nom_intern'], $extractor->findInstancesInClass($class)));
     }
 
-    /** One editora:warm pass at START + $seconds: its X-Page-Cache counts. */
+    /** One editora:warm pass at START + $seconds: its summary from the status counts on. */
     private function warm(int $seconds): string
     {
         $this->at($seconds);
         self::assertSame(0, Artisan::call('editora:warm'));
-        self::assertMatchesRegularExpression('/^2 pages in [\d.]+ s\. Status: 200: 2\. Page cache: (.+)\.$/D', $output = trim(Artisan::output()));
+        self::assertMatchesRegularExpression('/^2 pages in [\d.]+ s\. Status: .+$/D', $output = trim(Artisan::output()));
 
-        return preg_replace('/^.*Page cache: (.+)\.$/sD', '$1', $output);
+        return preg_replace('/^2 pages in [\d.]+ s\. /', '', $output);
+    }
+
+    /** One editora:warm --if-changed run at START + $seconds: the URLs it visited. */
+    private function ifChanged(int $seconds): array
+    {
+        $this->at($seconds);
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+
+        return Http::recorded()->map(fn (array $pair) => $pair[0]->url())->values()->all();
+    }
+
+    /** A page of class 2 whose publishing_begins is $begins, a Unix time read in the session time zone, as NOW() is. */
+    private function page(int $id, string $name, string $niceurl, int $begins): void
+    {
+        DB::insert("INSERT INTO omp_instances VALUES (?, 2, ?, 'O', FROM_UNIXTIME(?), NULL, '2026-11-16 10:00:00')", [$id, $name, $begins]);
+        DB::table('omp_niceurl')->insert(['inst_id' => $id, 'language' => 'ca', 'niceurl' => $niceurl]);
     }
 
     private function visit(int $seconds, array $headers = []): TestResponse
@@ -110,12 +135,35 @@ final class WarmedPagesTest extends TestCase
 
     public function test_every_warm_pass_stores_the_pages_whose_copy_expired(): void
     {
-        self::assertSame('MISS: 2', $this->warm(0));
-        self::assertSame('HIT: 2', $this->warm(600));
-        // The pages stored at 0 expired with PAGE_CACHE_TTL (an hour); their content was read an hour ago.
-        self::assertSame('MISS: 2', $this->warm(3600));
-        self::assertSame('HIT: 2', $this->warm(4200));
-        $this->visit(4800)->assertHeader('X-Page-Cache', 'HIT');
+        self::assertSame('Status: 200: 2. Page cache: MISS: 2. Already stored: 0. Visited: 2.', $this->warm(0));
+        // Both copies live an hour (PAGE_CACHE_TTL): the passes that find them send nothing.
+        self::assertSame('Status: none. Page cache: none. Already stored: 2. Visited: 0.', $this->warm(600));
+        self::assertSame('Status: none. Page cache: none. Already stored: 2. Visited: 0.', $this->warm(3599));
+        // They expired with the hour; their content was read an hour ago.
+        self::assertSame('Status: 200: 2. Page cache: MISS: 2. Already stored: 0. Visited: 2.', $this->warm(3600));
+        $this->visit(4200)->assertHeader('X-Page-Cache', 'HIT');
+    }
+
+    public function test_if_changed_warms_only_after_a_publication_a_publishing_date_or_a_deploy(): void
+    {
+        self::assertSame(self::PAGES, $this->ifChanged(0));
+        self::assertSame([], $this->ifChanged(60));
+        // An editor publishes: no stored copy has the new key.
+        $this->at(120);
+        $this->app->make(ContentFreshness::class)->published();
+        self::assertSame(self::PAGES, $this->ifChanged(180));
+        self::assertSame([], $this->ifChanged(240));
+        // A page enters the site when its publishing_begins passes, with no write; the pass in that second stores nothing (STALE).
+        $this->page(11, 'News', 'news', self::START + 300);
+        $pages = [...self::PAGES, 'http://localhost/ca/news'];
+        self::assertSame($pages, $this->ifChanged(300));
+        self::assertStringContainsString('Page cache: STALE: 3.', Artisan::output());
+        self::assertSame($pages, $this->ifChanged(301));
+        self::assertStringContainsString('Page cache: MISS: 3.', Artisan::output());
+        self::assertSame([], $this->ifChanged(360));
+        $this->deploy();
+        self::assertSame($pages, $this->ifChanged(420));
+        self::assertSame([], $this->ifChanged(480));
     }
 
     public function test_a_visitor_never_waits_for_content_past_its_ttl_even_with_a_forged_warm_header(): void

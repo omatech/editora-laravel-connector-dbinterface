@@ -58,6 +58,15 @@ abstract class TestCase extends FrameworkTestCase
         Route::middleware('web')->get('/{language}/{nice_url}', [EditoraController::class, 'init']);
     }
 
+    /** What a deploy does to the build PageCache keys pages by: it caches the configuration again. */
+    protected function deploy(): void
+    {
+        $config = $this->app->getCachedConfigPath();
+        file_put_contents($config, '<?php return [];');
+        touch($config, 1794909600);
+        clearstatcache(true, $config);
+    }
+
     protected function tearDown(): void
     {
         File::deleteDirectory($this->fixture);
