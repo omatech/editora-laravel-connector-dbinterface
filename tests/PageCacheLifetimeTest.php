@@ -67,6 +67,7 @@ final class PageCacheLifetimeTest extends TestCase
                 $this->starts++;
             }
         });
+        Route::middleware(PageCache::class)->get('/ca/{section}/{sub}/{slug}', fn (string $section, string $sub, string $slug) => response('<html><body>'.$slug.' deep</body></html>'));
         Route::middleware(PageCache::class)->get('/ca/{slug?}', function (?string $slug = null) {
             $this->renders[$slug] = ($this->renders[$slug] ?? 0) + 1;
 
@@ -198,6 +199,18 @@ final class PageCacheLifetimeTest extends TestCase
         self::assertSame(1, $this->starts);
         $this->app->terminate();
         self::assertSame(1, $this->starts);
+    }
+
+    public function test_a_deeper_path_is_cached_only_up_to_page_max_depth(): void
+    {
+        self::assertSame('BYPASS', $this->get('/ca/tables/round/archive')->headers->get('X-Page-Cache'));
+
+        config(['editora-cache.page.max_depth' => 3]);
+        // Its object is the nice URL the path ends with: an old publication, kept a day.
+        self::assertSame(['0' => 'MISS', '0.9' => 'HIT', '1' => 'MISS'], $this->states('tables/round/archive', [0, 0.9, 1]));
+        self::assertSame(['0' => 'MISS', '6.9' => 'HIT'], $this->states('tables/round/about', [0, 6.9]));
+        config(['editora-cache.page.max_depth' => 2]);
+        self::assertSame('BYPASS', $this->visit('tables/round/about', 7)->headers->get('X-Page-Cache'));
     }
 
     public function test_no_warm_starts_with_warm_on_change_off(): void

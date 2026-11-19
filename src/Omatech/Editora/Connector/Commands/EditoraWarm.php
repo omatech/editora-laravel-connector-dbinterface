@@ -9,15 +9,13 @@ use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
 use Omatech\Editora\Connector\Cache\ContentFreshness;
 use Omatech\Editora\Connector\Cache\PageCache;
-use Omatech\Editora\Connector\Cache\Publications;
+use Omatech\Editora\Connector\Cache\WarmPaths;
 use Omatech\Editora\Connector\Cache\WarmState;
-use Omatech\Editora\Connector\EditoraController;
 
 /**
  * Visits, through the site's own URL, the published pages without a current copy in PageCache, so the content, static text
@@ -38,16 +36,14 @@ use Omatech\Editora\Connector\EditoraController;
  * again when a publication or a publishing date changed the pages during its pass; a run that finds the lock taken leaves
  * the work to that one. A pass starts once no publication was recorded in the last SETTLE seconds: saves come in bursts.
  *
- * Only pages the site serves are visited (an object of a class without a page controller answers 404), and of the
- * classes in editora.publicationClasses (news, posts, events...) only those published in the last
- * editora-cache.warm.recent_days days (Publications): an older publication is cached for a day when someone visits it,
- * instead of taking every pass and the page cache with years of rarely read pages.
+ * What it visits comes from WarmPaths, PublishedPages unless the application binds its own: only pages the site serves
+ * (an object of a class without a page controller answers 404), and of the classes in editora.publicationClasses (news,
+ * posts, events...) only those published in the last editora-cache.warm.recent_days days (Publications): an older
+ * publication is cached for a day when someone visits it, instead of taking every pass and the page cache with years of
+ * rarely read pages.
  */
 final class EditoraWarm extends Command
 {
-    /** Editora's home is instance 1 (see EditoraController). */
-    private const HOME = 1;
-
     /** Passes one run makes at most while the pages keep changing under it. */
     private const PASSES = 3;
 
@@ -185,7 +181,7 @@ final class EditoraWarm extends Command
     {
         $visits = [];
         $stored = 0;
-        foreach ($this->paths() as $path) {
+        foreach (app(WarmPaths::class)->paths() as $path) {
             if (!$all && $pages->stored($base.$path)) {
                 $stored++;
             } else {
@@ -214,56 +210,6 @@ final class EditoraWarm extends Command
         if ($this->option('log')) {
             Log::log($level, 'editora:warm '.trim($message));
         }
-    }
-
-    /**
-     * Home pages first, in the order of editora.availableLanguages, then the published nice URLs of the pages to warm.
-     *
-     * @return list<string>
-     */
-    private function paths(): array
-    {
-        $languages = config('editora.availableLanguages');
-        $homeNiceUrl = config('editora.homeNiceUrl') === true;
-        $homes = $homeNiceUrl ? [] : array_combine($languages, array_map(fn (string $language) => '/'.$language, $languages));
-        $pages = [];
-
-        foreach ($this->publishedNiceUrls($languages) as $row) {
-            $path = '/'.$row->language.'/'.rawurlencode((string) $row->niceurl);
-            if ((int) $row->inst_id !== self::HOME) {
-                if (EditoraController::pageController((string) $row->tag) !== null) {
-                    $pages[] = $path;
-                }
-            } elseif ($homeNiceUrl) {
-                $homes[$row->language] = $path;
-            }
-        }
-
-        $orderedHomes = array_filter(array_map(fn (string $language) => $homes[$language] ?? null, $languages));
-
-        return [...array_values($orderedHomes), ...$pages];
-    }
-
-    /**
-     * Published now, on the clock the publishing dates are written in (Publications::now()): compared with the
-     * application's UTC, a page would join the pass that its own publishing date starts an hour late (two in summer).
-     */
-    private function publishedNiceUrls(array $languages): iterable
-    {
-        $publications = Publications::classes();
-        $since = Publications::recentSince()->toDateTimeString();
-        $now = Publications::now()->toDateTimeString();
-
-        return DB::table('omp_niceurl as n')
-            ->join('omp_instances as i', 'i.id', '=', 'n.inst_id')
-            ->join('omp_classes as c', 'c.id', '=', 'i.class_id')
-            ->where('i.status', 'O')
-            ->where(fn ($query) => $query->whereNull('i.publishing_begins')->orWhere('i.publishing_begins', '<=', $now))
-            ->where(fn ($query) => $query->whereNull('i.publishing_ends')->orWhere('i.publishing_ends', '>', $now))
-            ->where(fn ($query) => $query->whereNotIn('c.tag', $publications)->orWhere('i.publishing_begins', '>=', $since))
-            ->whereIn('n.language', $languages)
-            ->orderBy('n.language')->orderBy('n.niceurl')
-            ->get(['n.inst_id', 'n.language', 'n.niceurl', 'c.tag']);
     }
 
     /** @return array{0: string, 1: int, 2: string} The URL, its HTTP status (0 without an answer) and X-Page-Cache. */

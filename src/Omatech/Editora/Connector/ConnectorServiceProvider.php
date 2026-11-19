@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Omatech\Editora\Connector\Cache\CacheVersion;
 use Omatech\Editora\Connector\Cache\ConfiguredCacheVersion;
 use Omatech\Editora\Connector\Cache\ContentFreshness;
+use Omatech\Editora\Connector\Cache\PublishedPages;
+use Omatech\Editora\Connector\Cache\WarmPaths;
 use Omatech\Editora\Connector\Commands\EditoraModernize;
 use Omatech\Editora\Extractor\Extractor;
 use Omatech\Editora\Loader\Loader;
@@ -78,6 +80,7 @@ class ConnectorServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/Cache/config.php', 'editora-cache');
         $this->mergeConfigFrom(__DIR__.'/Media/config.php', 'editora-media');
         $this->app->bindIf(CacheVersion::class, ConfiguredCacheVersion::class);
+        $this->app->bindIf(WarmPaths::class, PublishedPages::class);
         $this->app->singletonIf(ContentFreshness::class, fn () => new ContentFreshness());
 
         // Before any connection opens: the sessions of this request read NOW() in the editors' zone.

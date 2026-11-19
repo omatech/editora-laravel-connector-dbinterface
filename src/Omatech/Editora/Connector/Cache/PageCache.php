@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Serves /{language} and /{language}/{slug} pages to every visitor from one stored copy per URL, made by the current
+ * Serves /{language} and /{language}/{slug} pages (and deeper ones, up to editora-cache.page.max_depth segments after the
+ * language) to every visitor from one stored copy per URL, made by the current
  * generation (generation()): the CacheVersion, the last publication or publishing date passed, and the build. A copy of
  * another generation is never served, and the next copy of the URL replaces it, so obsolete copies do not pile up. A copy
  * lives editora-cache.page.ttl seconds (a week), never past the next publishing date; a dated publication that is no longer
@@ -114,8 +115,10 @@ final class PageCache
             return false;
         }
         $languages = implode('|', array_map(fn (string $language) => preg_quote($language, '~'), config('editora.availableLanguages')));
+        $depth = config('editora-cache.page.max_depth');
+        $depth = is_numeric($depth) ? max(1, (int) $depth) : 1;
 
-        return preg_match('~^/(?:'.$languages.')(?:/[a-z0-9_-]+)?/?$~D', $request->getPathInfo()) === 1;
+        return preg_match('~^/(?:'.$languages.')(?:/[a-z0-9_-]+){0,'.$depth.'}/?$~D', $request->getPathInfo()) === 1;
     }
 
     /**
@@ -216,9 +219,10 @@ final class PageCache
         $entry = [$generation, (string) $response->headers->get('Content-Type'), (string) $response->getContent()];
         $ttl = (int) config('editora-cache.page.ttl');
         try {
-            $path = explode('/', trim($request->getPathInfo(), '/'), 2);
-            if (isset($path[1]) && $path[1] !== '') {
-                $ttl = Publications::lifetime($path[0], $path[1], $ttl);
+            // The page's object is the nice URL its path ends with: /{language}/{slug}, or deeper (page.max_depth).
+            $path = explode('/', trim($request->getPathInfo(), '/'));
+            if (count($path) > 1) {
+                $ttl = Publications::lifetime($path[0], (string) end($path), $ttl);
             }
             // A publishing date may change the page without any write: it is not kept past the next one.
             $lifetime = $this->freshness->lifetime($ttl);

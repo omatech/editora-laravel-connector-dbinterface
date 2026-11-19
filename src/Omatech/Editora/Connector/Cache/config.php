@@ -37,6 +37,9 @@ return [
         'store' => env('PAGE_CACHE_STORE'),
         'ttl' => (int) env('PAGE_CACHE_TTL', 604800),
         'publication_ttl' => (int) env('PAGE_CACHE_PUBLICATION_TTL', 86400),
+        // Path segments after the language that a cached page may have: 1 serves /{language}/{slug}; a site whose public
+        // URLs go deeper (/{language}/{category}/{product}) raises it, and binds Cache\WarmPaths to warm those URLs.
+        'max_depth' => (int) env('PAGE_CACHE_MAX_DEPTH', 1),
         // A larger page is not stored. There is no limit on the bytes of the store: its Valkey autoscales.
         'max_bytes' => 524288,
     ],

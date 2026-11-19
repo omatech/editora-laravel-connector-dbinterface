@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Sleep;
 use Omatech\Editora\Connector\Cache\ContentFreshness;
 use Omatech\Editora\Connector\Cache\PageCache;
+use Omatech\Editora\Connector\Cache\PublishedPages;
+use Omatech\Editora\Connector\Cache\WarmPaths;
 use Omatech\Editora\Connector\Cache\WarmState;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -378,6 +380,31 @@ final class EditoraWarmTest extends TestCase
     {
         self::assertSame(1, Artisan::call('editora:published'));
         self::assertStringContainsString('Publications are not tracked', Artisan::output());
+    }
+
+    public function test_the_application_can_bind_the_paths_to_warm(): void
+    {
+        $this->app->instance(WarmPaths::class, new class implements WarmPaths {
+            public function paths(): iterable
+            {
+                // What a site linking its products under their category would warm: PublishedPages without them, plus those URLs.
+                $pages = array_filter((new PublishedPages())->pages(), fn (array $page) => $page['tag'] !== 'Preview_Page');
+                yield from array_column($pages, 'path');
+                yield '/ca/tables/round/recent-news';
+            }
+        });
+
+        self::assertSame(0, Artisan::call('editora:warm'));
+        self::assertSame(['https://site.test/ca', 'https://site.test/ca/about', 'https://site.test/ca/tables/round/recent-news'], $this->visited());
+    }
+
+    public function test_published_pages_tell_the_class_and_instance_of_each_path(): void
+    {
+        $pages = (new PublishedPages())->pages();
+
+        self::assertSame(['path' => '/ca', 'language' => 'ca', 'tag' => null, 'instance' => null], $pages[0]);
+        self::assertSame(['path' => '/ca/about', 'language' => 'ca', 'tag' => 'Redirect_Headers', 'instance' => 2], $pages[1]);
+        self::assertSame(self::PAGES, array_map(fn (string $path) => 'https://site.test'.$path, [...(new PublishedPages())->paths()]));
     }
 
     /** @return list<string> */

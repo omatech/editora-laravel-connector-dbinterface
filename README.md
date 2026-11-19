@@ -229,7 +229,7 @@ Editors type those dates in their own time and the admin stores them with no zon
 
 ## Page cache
 
-`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per URL. A copy lives `PAGE_CACHE_TTL` seconds (604800, a week) and never past the next publishing date. It records the generation that made it: the build (the time the configuration was cached), `CMS_CACHE_VERSION` and the last publication or publishing date passed. Once any of them changes, no visitor gets a copy made before, and the next copy of the URL replaces the obsolete one, so the store holds one copy per page, not one per publication. A page rendered from content that was not fresh is answered as `STALE` and not stored, so a page shows a publication as soon as its content has refreshed.
+`Cache\PageCache` is a global middleware that serves `/{language}` and `/{language}/{slug}` to every visitor from one copy per URL. A site whose public URLs go deeper, such as `/{language}/{category}/{subcategory}/{product}`, sets `PAGE_CACHE_MAX_DEPTH` (`editora-cache.page.max_depth`, 1) to the number of segments after the language it serves; a deeper page's object, for its lifetime, is the nice URL its path ends with. A copy lives `PAGE_CACHE_TTL` seconds (604800, a week) and never past the next publishing date. It records the generation that made it: the build (the time the configuration was cached), `CMS_CACHE_VERSION` and the last publication or publishing date passed. Once any of them changes, no visitor gets a copy made before, and the next copy of the URL replaces the obsolete one, so the store holds one copy per page, not one per publication. A page rendered from content that was not fresh is answered as `STALE` and not stored, so a page shows a publication as soon as its content has refreshed.
 
 Dated publications are kept only while they are recent. Of the classes in `editora.publicationClasses` (below, "Warming the caches"), a page published in the last `editora-cache.warm.recent_days` days (7) is kept until it stops being recent, and at least `PAGE_CACHE_PUBLICATION_TTL` seconds (86400, a day). An older one is not warmed, and a visit stores its page for a day, after which it leaves the cache unless someone visits it again.
 
@@ -261,6 +261,12 @@ Dated publications are warmed only while they are recent. List their class tags 
 ```
 
 Without `publicationClasses` every page is warmed and kept a week, whatever its date.
+
+That list comes from `Cache\WarmPaths`, which the connector binds to `Cache\PublishedPages`. A site whose visitors reach pages under other URLs (products linked as `/{language}/{category}/{subcategory}/{product}`, say) binds its own in a service provider, so the warm stores the copies visitors ask for and not those of URLs nobody uses; `PublishedPages::pages()` gives each default path with its language, class tag and instance to build on:
+
+```php
+$this->app->bind(\Omatech\Editora\Connector\Cache\WarmPaths::class, \App\Cache\SiteWarmPaths::class);
+```
 
 Each pass records, in the page store, the generation it warmed (`PageCache::generation()`) and whether it was complete: no page answered 5xx or nothing, and none `STALE`, as content read in the very second of a publication leaves it. When the generation changed since the last pass (a deploy, a publication, a publishing date or `CMS_CACHE_VERSION`), no copy is current and every page is visited; otherwise only the pages without a copy (`PageCache::stored()`), and a page that failed loses its copy so that the next pass visits it. The warm's requests carry `X-Editora-Warm` with a token derived from `APP_KEY` (`ContentFreshness::warmToken()`): the page is rendered and stored even when a copy exists, and content past its TTL is read again before the answer, which a visitor never waits for. A page `PageCache` never stores, such as one with a CSRF token, is visited by every pass.
 
