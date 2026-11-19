@@ -48,6 +48,7 @@ final class PublicMediaTest extends TestCase
         self::assertSame('Mon, 26 Oct 2026 16:21:00 GMT', $response->headers->get('Last-Modified'));
         self::assertStringContainsString('public', $response->headers->get('Cache-Control'));
         self::assertStringContainsString('max-age=86400', $response->headers->get('Cache-Control'));
+        $response->assertHeaderMissing('Cloudflare-CDN-Cache-Control');
         self::assertSame(['nosniff'], $response->headers->all('X-Content-Type-Options'));
         self::assertFalse($response->headers->has('Location'));
         // Cookies would stop the CDN from keeping the file and open a session per image.
@@ -104,12 +105,15 @@ final class PublicMediaTest extends TestCase
 
     public function test_missing_media_is_not_found_without_details(): void
     {
-        $this->storageError(404, 'NoSuchKey');
-        $response = $this->get('/uploads/20220426/missing.png');
+        foreach (['GET', 'HEAD'] as $method) {
+            $this->storageError(404, 'NoSuchKey');
+            $response = $this->call($method, '/uploads/20220426/missing.png');
 
-        $response->assertNotFound();
-        self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
-        self::assertSame('', $response->getContent());
+            $response->assertNotFound()->assertHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+            self::assertTrue($response->headers->hasCacheControlDirective('no-store'));
+            self::assertTrue($response->headers->hasCacheControlDirective('private'));
+            self::assertSame('', $response->getContent());
+        }
     }
 
     public function test_storage_failure_is_reported_and_not_cached(): void

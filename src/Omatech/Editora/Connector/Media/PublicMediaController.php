@@ -26,7 +26,7 @@ final class PublicMediaController
     {
         $disk = $this->disk();
         if ($disk === null || !PublicMedia::allows($path)) {
-            return response('', 404)->header('Cache-Control', 'no-store');
+            return $this->notFound();
         }
         try {
             $object = $this->fetch($disk, $request, $path);
@@ -102,11 +102,22 @@ final class PublicMediaController
 
     private function storageFailure(S3Exception $e): Response
     {
-        if (in_array($e->getStatusCode(), [404, 416], true)) {
-            return response('', $e->getStatusCode())->header('Cache-Control', 'no-store');
+        if ($e->getStatusCode() === Response::HTTP_NOT_FOUND) {
+            return $this->notFound();
+        }
+        if ($e->getStatusCode() === Response::HTTP_REQUESTED_RANGE_NOT_SATISFIABLE) {
+            return response('', Response::HTTP_REQUESTED_RANGE_NOT_SATISFIABLE)->header('Cache-Control', 'no-store');
         }
         report($e);
 
         return response('', 502)->header('Cache-Control', 'no-store');
+    }
+
+    private function notFound(): Response
+    {
+        return response('', Response::HTTP_NOT_FOUND, [
+            'Cache-Control' => 'no-store, private',
+            'Cloudflare-CDN-Cache-Control' => 'no-store',
+        ]);
     }
 }
