@@ -11,18 +11,23 @@ use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Serves /{language} and /{language}/{slug} pages to every visitor from one stored copy per
- * CacheVersion, for at most editora-cache.page.ttl seconds and never past the next publishing date. A page is stored only when another visitor
- * may receive it: a complete 200 HTML document without the visitor's CSRF token, a nonce or a
- * VarDumper dump, rendered for a session that holds nothing but language and navigation, and adding no
- * header or cookie the copy would lose. Register it as global middleware after any middleware whose
- * headers every response needs.
+ * Serves /{language} and /{language}/{slug} pages to every visitor from one stored copy per URL, made by the current
+ * generation (generation()): the CacheVersion, the last publication or publishing date passed, and the build. A copy of
+ * another generation is never served, and the next copy of the URL replaces it, so obsolete copies do not pile up. A copy
+ * lives editora-cache.page.ttl seconds (a week), never past the next publishing date; a dated publication that is no longer
+ * recent only publication_ttl seconds after a visit stores it (Publications). A page is stored only when another visitor
+ * may receive it: a complete 200 HTML document without the visitor's CSRF token, a nonce or a VarDumper dump, rendered for
+ * a session that holds nothing but language and navigation, and adding no header or cookie the copy would lose. Register it
+ * as global middleware after any middleware whose headers every response needs.
  *
- * Pages rendered from content that was not fresh are answered as STALE and not stored, and the key
- * includes the last publication, so a publication reaches visitors once its content has refreshed. A
- * publishing date that passes counts as a publication at that second (ContentFreshness), and no page is
- * kept past the next one, or stored while the dates cannot be read. The key also includes the build, so a
- * deploy never replays pages rendered by the previous code.
+ * Pages rendered from content that was not fresh are answered as STALE and not stored, so a publication reaches visitors
+ * once its content has refreshed. A publishing date that passes counts as a publication at that second (ContentFreshness),
+ * and no page is kept past the next one, or stored while the dates cannot be read. The build is the time the configuration
+ * was cached, so a deploy never replays pages rendered by the previous code.
+ *
+ * A page answered without a current copy starts editora:warm in the background after the response, unless the last pass
+ * completed this generation (BackgroundWarm): after a deploy, a publication or a publishing date, the first request warms
+ * the site. The warm's own requests (ContentFreshness::warming()) never replay a copy: they render the page and store it.
  *
  * Editora admin sessions never get or leave the shared copy: their pages carry the edit tools
  * (@editora_scripts). The session is only known once the application has run, so every response to one
@@ -31,9 +36,6 @@ use Throwable;
  * Responses carry no-store: an edge cache would otherwise keep pages that a new version no longer
  * reaches. Pages are limited (what may be shared, editora-cache.page.max_bytes each, the TTL and the
  * publishing dates), not the bytes of the store: the Valkey behind it autoscales.
- *
- * editora:warm computes the same key without a request: stored() tells it whether the next request for a URL
- * would replay a copy, and generation() is what every key shares, so a change in it means no page has a copy yet.
  */
 final class PageCache
 {
@@ -45,7 +47,7 @@ final class PageCache
     /** Marks a browser with an Editora admin session; ContentFreshness can read publications again for it. */
     public const EDITOR_COOKIE = 'editora_editor';
 
-    public function __construct(private CacheVersion $version, private ContentFreshness $freshness)
+    public function __construct(private CacheVersion $version, private ContentFreshness $freshness, private BackgroundWarm $warm)
     {
     }
 
@@ -66,20 +68,24 @@ final class PageCache
         try {
             $store = Cache::store(config('editora-cache.page.store'));
             $key = $this->key($request);
-            $entry = $store->get($key);
+            $generation = $this->generation();
+            $entry = $this->freshness->warming() ? null : $store->get($key);
         } catch (Throwable $e) {
             report($e);
             return $this->mark($next($request), 'BYPASS');
         }
-        if (is_array($entry)) {
-            return $this->replay($request, ...$entry);
+        if (is_array($entry) && count($entry) === 3 && $entry[0] === $generation) {
+            return $this->replay($request, $entry[1], $entry[2]);
         }
         $response = $next($request);
+        if (!$this->freshness->warming()) {
+            $this->warm->whenChanged();
+        }
         if ($this->freshness->stale()) {
             return $this->unshared($this->mark($response, 'STALE'));
         }
         if ($this->storable($request, $response)) {
-            $this->store($store, $key, $response);
+            $this->store($store, $key, $generation, $request, $response);
         }
 
         return $this->unshared($this->mark($response, 'MISS'));
@@ -113,8 +119,9 @@ final class PageCache
     }
 
     /**
-     * Whether the next request for $url would replay a stored copy, as handle() keys it for the scheme, host and path of
-     * $url; a URL handle() does not serve has none. Throws when the store cannot be read.
+     * Whether a copy of $url is stored, as handle() keys it for the scheme, host and path of $url, whatever generation made
+     * it: once a pass completed the current generation (WarmState), every copy is current. A URL handle() does not serve has
+     * none. Throws when the store cannot be read.
      */
     public function stored(string $url): bool
     {
@@ -123,9 +130,18 @@ final class PageCache
         return $this->eligible($request) && Cache::store(config('editora-cache.page.store'))->has($this->key($request));
     }
 
+    /** Removes the copy of $url, if any, so stored() no longer counts it. Throws when the store cannot be written. */
+    public function forget(string $url): void
+    {
+        $request = Request::create($url);
+        if ($this->eligible($request)) {
+            Cache::store(config('editora-cache.page.store'))->forget($this->key($request));
+        }
+    }
+
     /**
-     * What every page key shares: the cache version, the last publication (or publishing date passed) and the build. Once
-     * any of them changes, no request finds a copy stored before.
+     * What every current copy was made by: the cache version, the last publication (or publishing date passed) and the
+     * build. Once any of them changes, no copy stored before is served.
      *
      * @return array{version: string, publication: int, build: int}
      */
@@ -134,12 +150,10 @@ final class PageCache
         return ['version' => $this->version->current(), 'publication' => $this->freshness->lastPublication(), 'build' => $this->build()];
     }
 
+    /** One key per URL: the generation is stored with the copy, so a new copy replaces an obsolete one. */
     private function key(Request $request): string
     {
-        return 'page:v1:'.hash('sha256', json_encode(
-            [$request->getSchemeAndHttpHost(), '/'.$request->path(), ...array_values($this->generation())],
-            JSON_THROW_ON_ERROR
-        ));
+        return 'page:v2:'.hash('sha256', json_encode([$request->getSchemeAndHttpHost(), '/'.$request->path()], JSON_THROW_ON_ERROR));
     }
 
     /** Every build caches the configuration anew; without a cached configuration there is no build to tell apart. */
@@ -197,11 +211,15 @@ final class PageCache
             && !preg_match(self::UNSHARABLE, $body) && ($token === null || !str_contains($body, $token));
     }
 
-    private function store(Repository $store, string $key, Response $response): void
+    private function store(Repository $store, string $key, array $generation, Request $request, Response $response): void
     {
-        $entry = [(string) $response->headers->get('Content-Type'), (string) $response->getContent()];
+        $entry = [$generation, (string) $response->headers->get('Content-Type'), (string) $response->getContent()];
         $ttl = (int) config('editora-cache.page.ttl');
         try {
+            $path = explode('/', trim($request->getPathInfo(), '/'), 2);
+            if (isset($path[1]) && $path[1] !== '') {
+                $ttl = Publications::lifetime($path[0], $path[1], $ttl);
+            }
             // A publishing date may change the page without any write: it is not kept past the next one.
             $lifetime = $this->freshness->lifetime($ttl);
             if ($lifetime > 0) {

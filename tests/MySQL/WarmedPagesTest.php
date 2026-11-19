@@ -22,11 +22,12 @@ use Omatech\Editora\Connector\DoctrineConnection;
 use Tests\TestCase;
 
 /**
- * editora:warm visits only the pages without a stored copy, so the content it finds is past its 60-second TTL whenever it
+ * editora:warm visits only the pages without a current copy, so the content it finds is past its 60-second TTL whenever it
  * visits one. A visitor gets such content at once and it is refreshed after the response, which leaves the page unstored
- * (STALE); the warm reads it again before it is served instead, so every pass stores the pages whose copy expired. Each page
- * reads its own content, as every Editora page reads its own object. With --if-changed a pass runs only once a publication,
- * a publishing date or a deploy changed the pages, and until a pass stored every page it could.
+ * (STALE); the warm reads it again before it is served instead, so every pass stores the pages it visits. Each page reads its
+ * own content, as every Editora page reads its own object. Copies live a week, and a pass renders them all again a day
+ * before they expire. With --if-changed a pass runs only once a publication, a publishing date or a deploy changed the
+ * pages, and until a pass stored every page it could.
  */
 final class WarmedPagesTest extends TestCase
 {
@@ -105,9 +106,10 @@ final class WarmedPagesTest extends TestCase
     {
         $this->at($seconds);
         self::assertSame(0, Artisan::call('editora:warm'));
-        self::assertMatchesRegularExpression('/^2 pages in [\d.]+ s\. Status: .+$/D', $output = trim(Artisan::output()));
+        $lines = explode("\n", trim(Artisan::output()));
+        self::assertMatchesRegularExpression('/^2 pages in [\d.]+ s\. Status: .+$/D', $summary = end($lines));
 
-        return preg_replace('/^2 pages in [\d.]+ s\. /', '', $output);
+        return preg_replace('/^2 pages in [\d.]+ s\. /', '', $summary);
     }
 
     /** One editora:warm --if-changed run at START + $seconds: the URLs it visited. */
@@ -133,15 +135,17 @@ final class WarmedPagesTest extends TestCase
         return $this->get('/ca/about', $headers)->assertOk()->assertSee('<body>About</body>', false);
     }
 
-    public function test_every_warm_pass_stores_the_pages_whose_copy_expired(): void
+    public function test_a_pass_renders_every_page_again_a_day_before_the_copies_expire(): void
     {
+        $day = 86400;
         self::assertSame('Status: 200: 2. Page cache: MISS: 2. Already stored: 0. Visited: 2.', $this->warm(0));
-        // Both copies live an hour (PAGE_CACHE_TTL): the passes that find them send nothing.
+        // Both copies live a week (PAGE_CACHE_TTL): the passes that find them send nothing.
         self::assertSame('Status: none. Page cache: none. Already stored: 2. Visited: 0.', $this->warm(600));
-        self::assertSame('Status: none. Page cache: none. Already stored: 2. Visited: 0.', $this->warm(3599));
-        // They expired with the hour; their content was read an hour ago.
-        self::assertSame('Status: 200: 2. Page cache: MISS: 2. Already stored: 0. Visited: 2.', $this->warm(3600));
-        $this->visit(4200)->assertHeader('X-Page-Cache', 'HIT');
+        self::assertSame('Status: none. Page cache: none. Already stored: 2. Visited: 0.', $this->warm(6 * $day - 1));
+        // The record of that pass lasts six days: this pass renders both pages again, from content read six days ago.
+        self::assertSame('Status: 200: 2. Page cache: MISS: 2. Already stored: 0. Visited: 2.', $this->warm(6 * $day));
+        // A week after the first pass, its copies would have expired; the visitor gets the copy of the last one.
+        $this->visit(7 * $day + 60)->assertHeader('X-Page-Cache', 'HIT');
     }
 
     public function test_if_changed_warms_only_after_a_publication_a_publishing_date_or_a_deploy(): void
@@ -168,6 +172,8 @@ final class WarmedPagesTest extends TestCase
 
     public function test_a_visitor_never_waits_for_content_past_its_ttl_even_with_a_forged_warm_header(): void
     {
+        // Copies of an hour, so that the visits below find the content, not the page, past its TTL.
+        config(['editora-cache.page.ttl' => 3600]);
         $this->visit(0)->assertHeader('X-Page-Cache', 'MISS');
         $this->visit(3600)->assertHeader('X-Page-Cache', 'STALE');
         $this->visit(7200, ['X-Editora-Warm' => 'forged'])->assertHeader('X-Page-Cache', 'STALE');

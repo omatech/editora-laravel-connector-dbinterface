@@ -6,23 +6,29 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Request as AppRequest;
+use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Sleep;
 use Omatech\Editora\Connector\Cache\ContentFreshness;
 use Omatech\Editora\Connector\Cache\PageCache;
+use Omatech\Editora\Connector\Cache\WarmState;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * editora:warm visits only the pages the site serves: an object of a class without a page controller answers 404 (see
  * EditoraController), and of the classes in editora.publicationClasses (news, posts, events...) only those published in
- * the last editora-cache.warm.recent_months months. An older publication is cached when someone visits it.
+ * the last editora-cache.warm.recent_days days. An older publication is cached when someone visits it.
  *
- * A page whose copy PageCache already holds is not visited. With --if-changed nothing is visited, or even listed, until a
- * deploy, a CMS_CACHE_VERSION, a publication or a publishing date changed the pages since the last pass without failures.
+ * While the pages are as the last pass left them, a page whose copy PageCache holds is not visited; once a deploy, a
+ * CMS_CACHE_VERSION, a publication or a publishing date changed them, every page is. With --if-changed nothing is visited,
+ * or even listed, while the last pass completed the pages as they are. Runs never overlap, and a run passes again when the
+ * pages change under it.
  */
 final class EditoraWarmTest extends TestCase
 {
@@ -37,6 +43,9 @@ final class EditoraWarmTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // A run waits for an editor's burst of saves to end: here the wait moves the clock instead of taking seconds.
+        Carbon::setTestNow(Carbon::now());
+        Sleep::fake(syncWithCarbon: true);
         config(['app.url' => 'https://site.test', 'editora.availableLanguages' => ['ca'], 'editora.homeNiceUrl' => false,
             'editora.controllersNamespace' => 'Tests\\Fixtures\\']);
         Schema::create('omp_classes', function (Blueprint $table) {
@@ -59,8 +68,8 @@ final class EditoraWarmTest extends TestCase
         DB::table('omp_classes')->insert([['id' => 10, 'tag' => 'Home'], ['id' => 20, 'tag' => 'Redirect_Headers'],
             ['id' => 30, 'tag' => 'Preview_Page'], ['id' => 40, 'tag' => 'Fragment']]);
         $instances = [[1, 10, '2015-01-01 00:00:00', 'home'], [2, 20, '2015-01-01 00:00:00', 'about'],
-            [3, 30, Carbon::now()->subDays(10)->toDateTimeString(), 'recent-news'],
-            [4, 30, Carbon::now()->subMonths(4)->toDateTimeString(), 'old-news'], [5, 40, '2015-01-01 00:00:00', 'fragment']];
+            [3, 30, Carbon::now()->subDays(6)->toDateTimeString(), 'recent-news'],
+            [4, 30, Carbon::now()->subDays(8)->toDateTimeString(), 'old-news'], [5, 40, '2015-01-01 00:00:00', 'fragment']];
         foreach ($instances as [$id, $class, $begins, $niceurl]) {
             DB::table('omp_instances')->insert(['id' => $id, 'class_id' => $class, 'status' => 'O', 'publishing_begins' => $begins]);
             DB::table('omp_niceurl')->insert(['inst_id' => $id, 'language' => 'ca', 'niceurl' => $niceurl]);
@@ -98,6 +107,12 @@ final class EditoraWarmTest extends TestCase
         Route::middleware(PageCache::class)->get('/ca/{slug?}', fn (?string $slug = null) => response($slug === 'about'
             ? '<html><body><form><input type="hidden" name="_token" value="t"></form></body></html>'
             : '<html><body>'.$slug.'</body></html>', $this->answers['https://site.test/ca/'.$slug] ?? 200));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     /** What a later process sees: a new request, so no publication read before is remembered. */
@@ -152,7 +167,7 @@ final class EditoraWarmTest extends TestCase
 
         self::assertSame(0, Artisan::call('editora:warm'));
         self::assertSame(['https://site.test/ca/about'], $this->visited());
-        self::assertMatchesRegularExpression('/^4 pages in [\d.]+ s\. Status: 200: 1\. Page cache: MISS: 1\. Already stored: 3\. Visited: 1\.$/D',
+        self::assertMatchesRegularExpression('/^Visiting the pages without a copy\.\n4 pages in [\d.]+ s\. Status: 200: 1\. Page cache: MISS: 1\. Already stored: 3\. Visited: 1\.$/D',
             trim(Artisan::output()));
     }
 
@@ -171,7 +186,7 @@ final class EditoraWarmTest extends TestCase
         self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
 
         self::assertSame(self::PAGES, $this->visited());
-        self::assertStringStartsWith('No complete pass on record.', Artisan::output());
+        self::assertStringStartsWith('No pass on record: visiting every page.', Artisan::output());
     }
 
     public function test_if_changed_warms_after_a_publication(): void
@@ -185,7 +200,7 @@ final class EditoraWarmTest extends TestCase
 
         self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
         self::assertSame(self::PAGES, $this->visited());
-        self::assertStringStartsWith('Changed since the last complete pass: publication.', Artisan::output());
+        self::assertStringStartsWith('Changed since the last pass: publication. Visiting every page.', Artisan::output());
         $this->nextRun();
         self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
         Http::assertNothingSent();
@@ -199,7 +214,7 @@ final class EditoraWarmTest extends TestCase
 
         self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
         self::assertSame(self::PAGES, $this->visited());
-        self::assertStringStartsWith('Changed since the last complete pass: build.', Artisan::output());
+        self::assertStringStartsWith('Changed since the last pass: build. Visiting every page.', Artisan::output());
     }
 
     public function test_if_changed_warms_after_a_new_cache_version(): void
@@ -210,7 +225,7 @@ final class EditoraWarmTest extends TestCase
 
         self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
         self::assertSame(self::PAGES, $this->visited());
-        self::assertStringStartsWith('Changed since the last complete pass: version.', Artisan::output());
+        self::assertStringStartsWith('Changed since the last pass: version. Visiting every page.', Artisan::output());
     }
 
     public function test_after_a_failed_pass_if_changed_visits_only_the_pages_without_a_copy(): void
@@ -249,6 +264,120 @@ final class EditoraWarmTest extends TestCase
 
         self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
         self::assertSame($visitedNext, $this->visited());
+    }
+
+    public function test_after_a_change_every_page_is_rendered_again_even_with_a_copy(): void
+    {
+        $this->withPageCache();
+        ContentFreshness::register($this->app);
+        self::assertSame(0, Artisan::call('editora:warm'));
+        $this->nextRun();
+        Carbon::setTestNow(Carbon::now()->addMinute());
+        $this->app->make(ContentFreshness::class)->published();
+        Carbon::setTestNow(Carbon::now()->addMinute());
+        $this->nextRun();
+
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        self::assertSame(self::PAGES, $this->visited());
+        self::assertStringEndsWith('Page cache: MISS: 4. Already stored: 0. Visited: 4.', trim(Artisan::output()));
+    }
+
+    public function test_a_page_that_fails_loses_its_copy_so_the_next_pass_visits_it(): void
+    {
+        $this->withPageCache();
+        self::assertSame(0, Artisan::call('editora:warm'));
+        config(['editora-cache.version' => 'v2']);
+        $this->answers['https://site.test/ca/old-news'] = 500;
+        $this->nextRun();
+        self::assertSame(1, Artisan::call('editora:warm', ['--if-changed' => true]));
+        $this->answers = [];
+        $this->nextRun();
+
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        self::assertSame(['https://site.test/ca/about', 'https://site.test/ca/old-news'], $this->visited());
+        self::assertStringStartsWith('The last pass was incomplete: visiting the pages without a copy.', Artisan::output());
+    }
+
+    public function test_a_run_that_finds_another_one_running_leaves_the_work_to_it(): void
+    {
+        $build = $this->app->make(PageCache::class)->generation()['build'];
+        $lock = Cache::store()->getStore()->lock(WarmState::key('https://site.test').':'.$build, 60);
+        self::assertTrue($lock->get());
+
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        Http::assertNothingSent();
+        self::assertSame('Another run is warming the site: it also warms what changes meanwhile.', trim(Artisan::output()));
+        $lock->release();
+    }
+
+    public function test_a_run_passes_again_when_the_pages_change_during_its_pass(): void
+    {
+        ContentFreshness::register($this->app);
+        $published = false;
+        Http::fake(function (Request $request) use (&$published) {
+            if (!$published && $request->url() === 'https://site.test/ca/about') {
+                // Another process records a publication while this pass is visiting.
+                $published = true;
+                (new ContentFreshness(Cache::store()))->published();
+            }
+
+            return $this->answer($request);
+        });
+
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        self::assertSame([...self::PAGES, ...self::PAGES], $this->visited());
+        self::assertStringContainsString('Changed since the last pass: publication. Visiting every page.', Artisan::output());
+        $this->nextRun();
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        Http::assertNothingSent();
+    }
+
+    public function test_a_pass_starts_once_no_publication_came_for_fifteen_seconds(): void
+    {
+        ContentFreshness::register($this->app);
+        Carbon::setTestNow(Carbon::now()->subSeconds(5));
+        $this->app->make(ContentFreshness::class)->published();
+        $published = Carbon::now()->getTimestamp();
+        Carbon::setTestNow(Carbon::now()->addSeconds(5));
+        $this->nextRun();
+
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        Sleep::assertSequence([Sleep::for(10)->seconds()]);
+        self::assertSame($published + 15, Carbon::now()->getTimestamp());
+        self::assertSame(self::PAGES, $this->visited());
+    }
+
+    public function test_with_log_the_run_is_written_to_the_application_log(): void
+    {
+        $logged = [];
+        $this->app['events']->listen(MessageLogged::class, function (MessageLogged $message) use (&$logged): void {
+            $logged[] = $message->level.' '.$message->message;
+        });
+
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true, '--log' => true]));
+        self::assertCount(2, $logged);
+        self::assertSame('info editora:warm No pass on record: visiting every page.', $logged[0]);
+        self::assertMatchesRegularExpression('/^info editora:warm 4 pages in [\d.]+ s\. Status: 200: 4\./', $logged[1]);
+    }
+
+    public function test_editora_published_records_a_publication(): void
+    {
+        ContentFreshness::register($this->app);
+        self::assertSame(0, Artisan::call('editora:warm'));
+        Carbon::setTestNow(Carbon::now()->addMinute());
+        $this->nextRun();
+
+        self::assertSame(0, Artisan::call('editora:published'));
+        self::assertSame('Publication recorded: the site warms in the background.', trim(Artisan::output()));
+        $this->nextRun();
+        self::assertSame(0, Artisan::call('editora:warm', ['--if-changed' => true]));
+        self::assertStringStartsWith('Changed since the last pass: publication.', Artisan::output());
+    }
+
+    public function test_editora_published_fails_while_publications_are_not_tracked(): void
+    {
+        self::assertSame(1, Artisan::call('editora:published'));
+        self::assertStringContainsString('Publications are not tracked', Artisan::output());
     }
 
     /** @return list<string> */

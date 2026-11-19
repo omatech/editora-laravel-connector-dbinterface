@@ -37,7 +37,7 @@ final class PageCacheStoreTest extends TestCase
         self::assertSame('MISS', $this->get('/ca/large')->headers->get('X-Page-Cache'));
     }
 
-    public function test_stored_tells_whether_the_next_request_for_a_url_replays_a_copy(): void
+    public function test_stored_tells_whether_a_url_has_a_copy(): void
     {
         $pages = $this->app->make(PageCache::class);
         self::assertFalse($pages->stored('http://localhost/ca/news'));
@@ -49,7 +49,7 @@ final class PageCacheStoreTest extends TestCase
             'http://localhost/ca/news?page=2', 'http://localhost/uploads/news'] as $url) {
             self::assertFalse($pages->stored($url), $url);
         }
-        config(['editora-cache.version' => 'v2']);
+        $pages->forget('http://localhost/ca/news');
         self::assertFalse($pages->stored('http://localhost/ca/news'));
     }
 }

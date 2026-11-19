@@ -31,10 +31,13 @@ use Throwable;
  * one passes, a publication is recorded or DATES_TTL goes by; every other request reads them with the publication, in the
  * same round trip to the store.
  *
- * editora:warm visits a page only when the page cache holds no copy of it, so the content it finds is usually past its TTL.
- * Served at once, that content would leave every warmed page unstored; requests carrying WARM_HEADER with warmToken() read
- * it again before it is served instead, so the warm stores the pages it visits. Only the application's key yields the
- * token: a visitor never waits for that read.
+ * editora:warm visits a page only when the page cache holds no current copy of it, so the content it finds is usually past
+ * its TTL. Served at once, that content would leave every warmed page unstored; requests carrying WARM_HEADER with
+ * warmToken() read it again before it is served instead, so the warm stores the pages it visits. Only the application's key
+ * yields the token: a visitor never waits for that read.
+ *
+ * Every publication starts editora:warm in the background once the response is sent (BackgroundWarm), so the site is warm
+ * again shortly after an editor saves, with nothing polling for changes.
  */
 final class ContentFreshness
 {
@@ -99,6 +102,12 @@ final class ContentFreshness
         return hash_hmac('sha256', 'editora:warm', (string) config('app.key'));
     }
 
+    /** Whether this is a request of editora:warm: it reads stale content again and renders the page instead of replaying a copy. */
+    public function warming(): bool
+    {
+        return $this->warm;
+    }
+
     private static function warms(Request $request): bool
     {
         $token = $request->headers->get(self::WARM_HEADER);
@@ -121,6 +130,14 @@ final class ContentFreshness
         $passed = $this->dates()['passed'];
 
         return max(request()->attributes->get(self::KEY), $passed);
+    }
+
+    /** Time of the last publication recorded (an admin write or editora:published), without publishing dates; 0 for none. */
+    public function lastRecordedPublication(): int
+    {
+        $this->dates();
+
+        return (int) request()->attributes->get(self::KEY);
     }
 
     /** Seconds that what is cached now may be kept, at most $ttl: never past the next publishing date, nothing while it is unknown. */
@@ -177,7 +194,10 @@ final class ContentFreshness
         return $dates;
     }
 
-    /** Records a publication now, at most once per second and request; a failure throws. */
+    /**
+     * Records a publication now, at most once per second and request, and warms the site once this request ends (after its
+     * response, for a web request); a failure throws.
+     */
     public function published(): void
     {
         if ($this->store === null) {
@@ -191,6 +211,14 @@ final class ContentFreshness
             throw new RuntimeException('The publication could not be recorded.');
         }
         request()->attributes->set(self::KEY, $now);
+        app(BackgroundWarm::class)->whenChanged();
+    }
+
+    /** Forgets the publication and dates this request read, so the next call reads them again: for a long-running command. */
+    public function forget(): void
+    {
+        request()->attributes->remove(self::KEY);
+        request()->attributes->remove(self::DATES);
     }
 
     /** Freshness window for content cached for $ttl seconds: nothing cached up to the last publication is fresh. */

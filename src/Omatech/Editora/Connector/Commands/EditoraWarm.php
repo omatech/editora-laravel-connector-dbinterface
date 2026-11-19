@@ -3,102 +3,190 @@
 namespace Omatech\Editora\Connector\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 use Omatech\Editora\Connector\Cache\ContentFreshness;
 use Omatech\Editora\Connector\Cache\PageCache;
+use Omatech\Editora\Connector\Cache\Publications;
+use Omatech\Editora\Connector\Cache\WarmState;
 use Omatech\Editora\Connector\EditoraController;
 
 /**
- * Visits the published pages that PageCache holds no copy of, through the site's own URL, so the content, static text and
- * page caches are warm before visitors arrive: an empty content cache costs the first visitor a full render. A page whose
- * copy is stored under the current key is skipped without a request (PageCache::stored()). Content past its TTL, as a pass
- * usually finds it, is read again before the answer (ContentFreshness::WARM_HEADER), so the page is stored.
+ * Visits, through the site's own URL, the published pages without a current copy in PageCache, so the content, static text
+ * and page caches are warm before visitors arrive: an empty cache costs the first visitor a full render. Content past its
+ * TTL, as a pass usually finds it, is read again before the answer (ContentFreshness::WARM_HEADER), and the page is
+ * rendered and stored even when a copy exists.
  *
- * With --if-changed nothing is listed or visited while PageCache::generation() (the build, CMS_CACHE_VERSION and the last
- * publication or publishing date passed) is what the last complete pass recorded: a deploy, a publication or a publishing
- * date starts a pass. A pass is complete when no page failed (5xx or no answer) and none was answered STALE, as content read
- * in the second of a publication leaves it; it records its generation in the page store for the page TTL, so a pass also
- * runs once the copies it stored may have expired. Schedule `editora:warm --if-changed` every minute and a plain
- * `editora:warm`, which fills whatever has no copy, twice a day (README, "Warming the caches").
+ * Each pass records its generation (PageCache::generation(): the build, CMS_CACHE_VERSION and the last publication or
+ * publishing date passed) and whether it was complete: no page failed (5xx or no answer) or answered STALE (WarmState).
+ * When the generation changed since the last pass, every page is visited, since no copy is current; otherwise only the
+ * pages without a copy (stored()), and a page that failed loses its copy so the next pass visits it. With --if-changed
+ * nothing is listed or visited when the last pass completed the current generation. The record lasts a day less than the
+ * copies of the last pass that visited every page, so a pass renders every page again before they expire.
+ *
+ * The site starts `editora:warm --if-changed` itself, in the background, when a request finds the pages changed
+ * (BackgroundWarm): nothing has to poll for changes. Schedule a plain `editora:warm` twice a day for whatever else has no
+ * copy (README, "Warming the caches"). Runs never overlap: a run takes a lock for the build and, while it holds it, passes
+ * again when a publication or a publishing date changed the pages during its pass; a run that finds the lock taken leaves
+ * the work to that one. A pass starts once no publication was recorded in the last SETTLE seconds: saves come in bursts.
  *
  * Only pages the site serves are visited (an object of a class without a page controller answers 404), and of the
  * classes in editora.publicationClasses (news, posts, events...) only those published in the last
- * editora-cache.warm.recent_months months: an older publication is cached when someone visits it, instead of
- * taking every pass and the page cache with years of rarely read pages.
+ * editora-cache.warm.recent_days days (Publications): an older publication is cached for a day when someone visits it,
+ * instead of taking every pass and the page cache with years of rarely read pages.
  */
 final class EditoraWarm extends Command
 {
     /** Editora's home is instance 1 (see EditoraController). */
     private const HOME = 1;
 
-    /** Followed by the hash of the base URL: the generation the last complete pass of that site warmed. */
-    private const STATE = 'editora-cache:warmed:';
+    /** Passes one run makes at most while the pages keep changing under it. */
+    private const PASSES = 3;
+
+    /** Seconds without a publication before a pass starts, waiting at most MAX_SETTLE. */
+    private const SETTLE = 15;
+    private const MAX_SETTLE = 120;
+
+    /** Bounds a lock that a process ended without releasing, such as one stopped by a deploy. */
+    private const LOCK_SECONDS = 1800;
 
     protected $signature = 'editora:warm
         {--url= : Base URL of the site to visit (default: APP_URL)}
-        {--if-changed : Visit nothing unless a deploy, a publication or a publishing date changed the pages since the last complete pass}';
+        {--if-changed : Visit nothing when the last pass completed the pages as they are now}
+        {--log : Also write what the run did to the application log, for a run in the background}';
 
-    protected $description = 'Visit the published Editora pages without a stored copy to warm the content and page caches';
+    protected $description = 'Visit the published Editora pages without a current copy to warm the content and page caches';
 
-    public function handle(PageCache $pages): int
+    public function handle(PageCache $pages, ContentFreshness $freshness): int
     {
-        $base = rtrim((string) ($this->option('url') ?: config('app.url')), '/');
-        $generation = $pages->generation();
+        $base = rtrim((string) ($this->option('url') ?: WarmState::base()), '/');
         $store = Cache::store(config('editora-cache.page.store'));
-        $state = self::STATE.hash('sha256', $base);
-        if ($this->option('if-changed') && $this->unchanged($store->get($state), $generation)) {
-            return self::SUCCESS;
-        }
-        $started = microtime(true);
-        [$visits, $stored] = $this->pass($base, $pages);
-        $this->summarize($visits, $stored, microtime(true) - $started);
+        $state = WarmState::key($base);
+        $exit = self::SUCCESS;
+        for ($round = 0; $round < 2; $round++) {
+            $lock = $this->lock($store, $state.':'.$pages->generation()['build']);
+            if ($lock !== null && !$lock->get()) {
+                $this->say('Another run is warming the site: it also warms what changes meanwhile.');
 
-        $failures = array_filter($visits, fn (array $visit) => $visit[1] === 0 || $visit[1] >= 500);
-        if ($failures === [] && !in_array('STALE', array_column($visits, 2), true)) {
-            $this->record($store, $state, $generation);
+                return $exit;
+            }
+            try {
+                [$exit, $seen] = $this->passes($base, $store, $state, $pages, $freshness);
+            } finally {
+                $lock?->release();
+            }
+            // A change recorded while this run released the lock found it taken and left the work to this run.
+            $freshness->forget();
+            if ($pages->generation() === $seen) {
+                break;
+            }
         }
 
-        return $failures === [] ? self::SUCCESS : self::FAILURE;
+        return $exit;
     }
 
-    /** Whether the pages are as the last complete pass left them; says so, or what changed. */
-    private function unchanged(mixed $recorded, array $generation): bool
+    private function lock(Repository $store, string $name): ?Lock
     {
-        if ($recorded === $generation) {
-            $this->info('Unchanged since the last complete pass: no page visited.');
+        $locks = $store->getStore();
 
-            return true;
-        }
-        $this->line(is_array($recorded)
-            ? 'Changed since the last complete pass: '.implode(', ', array_keys(array_diff_assoc($generation, $recorded))).'.'
-            : 'No complete pass on record.');
-
-        return false;
-    }
-
-    /** Kept as long as the copies the pass stored: once they may have expired, --if-changed visits them again. */
-    private function record(Repository $store, string $state, array $generation): void
-    {
-        $ttl = (int) config('editora-cache.page.ttl');
-        $store->put($state, $generation, $ttl > 0 ? $ttl : null);
+        return $locks instanceof LockProvider ? $locks->lock($name, self::LOCK_SECONDS) : null;
     }
 
     /**
-     * Visits, one after another, the pages without a stored copy.
+     * Passes until the pages stop changing under the run, at most PASSES.
+     *
+     * @return array{0: int, 1: array} the exit code and the generation last looked at
+     */
+    private function passes(string $base, Repository $store, string $state, PageCache $pages, ContentFreshness $freshness): array
+    {
+        $exit = self::SUCCESS;
+        for ($pass = 0; $pass < self::PASSES; $pass++) {
+            $generation = $this->settled($pages, $freshness);
+            $recorded = $store->get($state);
+            if ($this->option('if-changed') && WarmState::complete($recorded, $generation)) {
+                $this->say('Unchanged since the last complete pass: no page visited.');
+
+                return [$exit, $generation];
+            }
+            $all = !WarmState::current($recorded, $generation);
+            $this->say($this->changes($recorded, $generation));
+            $started = microtime(true);
+            $rendered = $all ? Carbon::now()->getTimestamp() : (WarmState::rendered($recorded) ?? Carbon::now()->getTimestamp());
+            [$visits, $stored] = $this->pass($base, $pages, $all);
+            $this->summarize($visits, $stored, microtime(true) - $started);
+
+            $failures = array_filter($visits, fn (array $visit) => $visit[1] === 0 || $visit[1] >= 500);
+            $incomplete = [...$failures, ...array_filter($visits, fn (array $visit) => $visit[2] === 'STALE')];
+            foreach ($incomplete as [$url]) {
+                $pages->forget($url);
+            }
+            $this->record($store, $state, WarmState::of($generation, $incomplete === [], $rendered));
+            $exit = $failures === [] ? self::SUCCESS : self::FAILURE;
+
+            $freshness->forget();
+            if ($pages->generation() === $generation) {
+                return [$exit, $generation];
+            }
+        }
+
+        return [$exit, $generation];
+    }
+
+    /** Keeps $record until a day before the copies of its full pass expire: passes that follow do not extend it. */
+    private function record(Repository $store, string $state, array $record): void
+    {
+        $expires = $record['rendered'] + WarmState::lifetime((int) config('editora-cache.page.ttl'));
+        $seconds = $expires - Carbon::now()->getTimestamp();
+        $seconds > 0 ? $store->put($state, $record, $seconds) : $store->forget($state);
+    }
+
+    /** The generation once no publication was recorded in the last SETTLE seconds, or after MAX_SETTLE; dates do not wait. */
+    private function settled(PageCache $pages, ContentFreshness $freshness): array
+    {
+        $waited = 0;
+        while (($quiet = Carbon::now()->getTimestamp() - $freshness->lastRecordedPublication()) < self::SETTLE && $waited < self::MAX_SETTLE) {
+            $wait = self::SETTLE - max(0, $quiet);
+            Sleep::for($wait)->seconds();
+            $waited += $wait;
+            $freshness->forget();
+        }
+
+        return $pages->generation();
+    }
+
+    /** What the pass visits, and why. */
+    private function changes(mixed $recorded, array $generation): string
+    {
+        if (WarmState::current($recorded, $generation)) {
+            return $recorded['complete'] ? 'Visiting the pages without a copy.' : 'The last pass was incomplete: visiting the pages without a copy.';
+        }
+        if (!is_array($recorded) || !is_array($recorded['generation'] ?? null)) {
+            return 'No pass on record: visiting every page.';
+        }
+
+        return 'Changed since the last pass: '.implode(', ', array_keys(array_diff_assoc($generation, $recorded['generation'])))
+            .'. Visiting every page.';
+    }
+
+    /**
+     * Visits, one after another, every page, or only those without a copy.
      *
      * @return array{0: list<array{0: string, 1: int, 2: string}>, 1: int} the visits and how many pages had a copy
      */
-    private function pass(string $base, PageCache $pages): array
+    private function pass(string $base, PageCache $pages, bool $all): array
     {
         $visits = [];
         $stored = 0;
         foreach ($this->paths() as $path) {
-            if ($pages->stored($base.$path)) {
+            if (!$all && $pages->stored($base.$path)) {
                 $stored++;
             } else {
                 $visits[] = $this->visit($base.$path);
@@ -112,11 +200,20 @@ final class EditoraWarm extends Command
     {
         foreach ($visits as [$url, $status]) {
             if ($status === 0 || $status >= 400) {
-                $this->warn(sprintf('  %s %s', $status ?: 'no answer', $url));
+                $this->say(sprintf('  %s %s', $status ?: 'no answer', $url), 'warning');
             }
         }
-        $this->info(sprintf('%d pages in %.1f s. Status: %s. Page cache: %s. Already stored: %d. Visited: %d.', $stored + count($visits),
+        $this->say(sprintf('%d pages in %.1f s. Status: %s. Page cache: %s. Already stored: %d. Visited: %d.', $stored + count($visits),
             $seconds, $this->counts(array_column($visits, 1)), $this->counts(array_column($visits, 2)), $stored, count($visits)));
+    }
+
+    /** Writes $message to the output and, with --log, to the application log. */
+    private function say(string $message, string $level = 'info'): void
+    {
+        $level === 'warning' ? $this->warn($message) : $this->info($message);
+        if ($this->option('log')) {
+            Log::log($level, 'editora:warm '.trim($message));
+        }
     }
 
     /**
@@ -147,12 +244,15 @@ final class EditoraWarm extends Command
         return [...array_values($orderedHomes), ...$pages];
     }
 
+    /**
+     * Published now, on the clock the publishing dates are written in (Publications::now()): compared with the
+     * application's UTC, a page would join the pass that its own publishing date starts an hour late (two in summer).
+     */
     private function publishedNiceUrls(array $languages): iterable
     {
-        $now = $this->databaseNow();
-        $publications = array_values((array) config('editora.publicationClasses', []));
-        $since = $now->copy()->subMonths((int) config('editora-cache.warm.recent_months'))->toDateTimeString();
-        $now = $now->toDateTimeString();
+        $publications = Publications::classes();
+        $since = Publications::recentSince()->toDateTimeString();
+        $now = Publications::now()->toDateTimeString();
 
         return DB::table('omp_niceurl as n')
             ->join('omp_instances as i', 'i.id', '=', 'n.inst_id')
@@ -164,18 +264,6 @@ final class EditoraWarm extends Command
             ->whereIn('n.language', $languages)
             ->orderBy('n.language')->orderBy('n.niceurl')
             ->get(['n.inst_id', 'n.language', 'n.niceurl', 'c.tag']);
-    }
-
-    /**
-     * Now on the wall clock the publishing dates are written in and compared with: the session zone of the connection
-     * (the editors' zone that DatabaseTimezone sets on MySQL), else the application's. Compared with the application's
-     * UTC, a page would join the pass that its own publishing date starts an hour late (two in summer).
-     */
-    private function databaseNow(): Carbon
-    {
-        $zone = DB::connection()->getConfig('timezone');
-
-        return Carbon::now(is_string($zone) && $zone !== '' ? $zone : null);
     }
 
     /** @return array{0: string, 1: int, 2: string} The URL, its HTTP status (0 without an answer) and X-Page-Cache. */
