@@ -17,14 +17,16 @@ return [
         'store' => env('CMS_CACHE_STORE'),
     ],
 
-    // editora:warm, which visits the published pages to fill the caches. Of the classes in editora.publicationClasses
-    // (news, posts, events...) it visits only those published in the last recent_months months.
+    // editora:warm, which visits the published pages without a stored copy to fill the caches. Of the classes in
+    // editora.publicationClasses (news, posts, events...) it visits only those published in the last recent_months months.
     'warm' => [
         'timeout' => (int) env('CMS_CACHE_WARM_TIMEOUT', 60),
         'recent_months' => 3,
     ],
 
-    // Whole public pages served by the PageCache middleware.
+    // Whole public pages served by the PageCache middleware. A copy lives ttl seconds, never past the next publishing date;
+    // a deploy, a publication, a publishing date or a new version leaves it behind sooner. Anything else a page shows (rows
+    // written outside the Editora admin, such as indexers and imports) changes only with the TTL.
     'page' => [
         'enabled' => env('PAGE_CACHE_ENABLED', true),
         'store' => env('PAGE_CACHE_STORE'),

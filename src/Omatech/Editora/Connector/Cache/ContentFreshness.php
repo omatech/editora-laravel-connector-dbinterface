@@ -31,7 +31,7 @@ use Throwable;
  * one passes, a publication is recorded or DATES_TTL goes by; every other request reads them with the publication, in the
  * same round trip to the store.
  *
- * editora:warm visits each page once per pass, so the content it finds is past its TTL whenever the pass interval is longer.
+ * editora:warm visits a page only when the page cache holds no copy of it, so the content it finds is usually past its TTL.
  * Served at once, that content would leave every warmed page unstored; requests carrying WARM_HEADER with warmToken() read
  * it again before it is served instead, so the warm stores the pages it visits. Only the application's key yields the
  * token: a visitor never waits for that read.

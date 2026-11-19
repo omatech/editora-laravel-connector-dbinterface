@@ -31,6 +31,9 @@ use Throwable;
  * Responses carry no-store: an edge cache would otherwise keep pages that a new version no longer
  * reaches. Pages are limited (what may be shared, editora-cache.page.max_bytes each, the TTL and the
  * publishing dates), not the bytes of the store: the Valkey behind it autoscales.
+ *
+ * editora:warm computes the same key without a request: stored() tells it whether the next request for a URL
+ * would replay a copy, and generation() is what every key shares, so a change in it means no page has a copy yet.
  */
 final class PageCache
 {
@@ -109,10 +112,32 @@ final class PageCache
         return preg_match('~^/(?:'.$languages.')(?:/[a-z0-9_-]+)?/?$~D', $request->getPathInfo()) === 1;
     }
 
+    /**
+     * Whether the next request for $url would replay a stored copy, as handle() keys it for the scheme, host and path of
+     * $url; a URL handle() does not serve has none. Throws when the store cannot be read.
+     */
+    public function stored(string $url): bool
+    {
+        $request = Request::create($url);
+
+        return $this->eligible($request) && Cache::store(config('editora-cache.page.store'))->has($this->key($request));
+    }
+
+    /**
+     * What every page key shares: the cache version, the last publication (or publishing date passed) and the build. Once
+     * any of them changes, no request finds a copy stored before.
+     *
+     * @return array{version: string, publication: int, build: int}
+     */
+    public function generation(): array
+    {
+        return ['version' => $this->version->current(), 'publication' => $this->freshness->lastPublication(), 'build' => $this->build()];
+    }
+
     private function key(Request $request): string
     {
         return 'page:v1:'.hash('sha256', json_encode(
-            [$request->getSchemeAndHttpHost(), '/'.$request->path(), $this->version->current(), $this->freshness->lastPublication(), $this->build()],
+            [$request->getSchemeAndHttpHost(), '/'.$request->path(), ...array_values($this->generation())],
             JSON_THROW_ON_ERROR
         ));
     }
