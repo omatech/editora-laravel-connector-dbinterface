@@ -53,7 +53,7 @@ final class EditoraWarmTest extends TestCase
         Schema::create('omp_niceurl', function (Blueprint $table) {
             $table->integer('inst_id');
             $table->string('language');
-            $table->string('niceurl');
+            $table->string('niceurl')->nullable();
         });
         // Tests\Fixtures\RedirectHeaders and PreviewPage exist; Tests\Fixtures\Fragment does not.
         DB::table('omp_classes')->insert([['id' => 10, 'tag' => 'Home'], ['id' => 20, 'tag' => 'Redirect_Headers'],
@@ -123,6 +123,24 @@ final class EditoraWarmTest extends TestCase
         self::assertSame(0, Artisan::call('editora:warm'));
 
         self::assertSame(self::PAGES, $this->visited());
+    }
+
+    public function test_a_null_legacy_slug_keeps_the_empty_path_segment_without_a_deprecation(): void
+    {
+        DB::table('omp_niceurl')->where('inst_id', 2)->update(['niceurl' => null]);
+        set_error_handler(static function (int $severity, string $message): never {
+            throw new \ErrorException($message, severity: $severity);
+        }, E_DEPRECATED);
+        try {
+            self::assertSame(0, Artisan::call('editora:warm'));
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame(
+            ['https://site.test/ca', 'https://site.test/ca/', 'https://site.test/ca/old-news', 'https://site.test/ca/recent-news'],
+            $this->visited(),
+        );
     }
 
     public function test_pages_with_a_stored_copy_are_not_visited(): void

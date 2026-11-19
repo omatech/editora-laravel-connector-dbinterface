@@ -132,7 +132,7 @@ final class EditoraWarm extends Command
         $pages = [];
 
         foreach ($this->publishedNiceUrls($languages) as $row) {
-            $path = '/'.$row->language.'/'.rawurlencode($row->niceurl);
+            $path = '/'.$row->language.'/'.rawurlencode((string) $row->niceurl);
             if ((int) $row->inst_id !== self::HOME) {
                 if (EditoraController::pageController((string) $row->tag) !== null) {
                     $pages[] = $path;
