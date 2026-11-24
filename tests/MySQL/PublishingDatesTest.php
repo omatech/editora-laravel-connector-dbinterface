@@ -187,6 +187,17 @@ final class PublishingDatesTest extends TestCase
         self::assertSame([self::START + self::BEGINS], $this->pageExpiries());
     }
 
+    public function test_generation_uses_one_clock_when_php_and_mysql_observe_different_seconds(): void
+    {
+        // The PHP request captured its time just before the MySQL query crossed the second.
+        DB::statement('SET TIMESTAMP = '.(self::START + 1));
+        self::assertSame(self::ENDS, $this->freshness->lifetime(86400));
+
+        $this->at(self::BEGINS + 1);
+        DB::statement('SET TIMESTAMP = '.(self::START + self::BEGINS + 2));
+        self::assertSame(self::START + self::BEGINS, $this->freshness->lastPublication());
+    }
+
     public function test_a_day_long_ttl_never_keeps_a_page_past_the_next_publishing_date(): void
     {
         config(['editora-cache.page.ttl' => 86400]);

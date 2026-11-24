@@ -187,8 +187,8 @@ final class ContentFreshness
             // Unknown for this request only: content keeps its own rules and no page is stored.
             return ['checked' => $now, 'passed' => 0, 'next' => $now];
         }
-        $dates = ['checked' => $now, 'passed' => $around['passed'] === null ? 0 : $now + $around['passed'],
-            'next' => $around['next'] === null ? null : $now + $around['next']];
+        $dates = ['checked' => $now, 'passed' => $around['passed'] === null ? 0 : $around['observed_at'] + $around['passed'],
+            'next' => $around['next'] === null ? null : $around['observed_at'] + $around['next']];
         $this->store->put(self::DATES, $dates, min(self::DATES_TTL, ($dates['next'] ?? PHP_INT_MAX) - $now));
 
         return $dates;

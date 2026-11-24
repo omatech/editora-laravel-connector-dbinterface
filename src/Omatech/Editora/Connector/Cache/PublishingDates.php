@@ -14,7 +14,8 @@ use Illuminate\Database\Connection;
  */
 final class PublishingDates
 {
-    private const SQL = 'SELECT TIMESTAMPDIFF(SECOND, NOW(), MAX(IF(moment <= NOW(), moment, NULL))) passed,'
+    private const SQL = 'SELECT UNIX_TIMESTAMP() observed_at,'
+        .' TIMESTAMPDIFF(SECOND, NOW(), MAX(IF(moment <= NOW(), moment, NULL))) passed,'
         .' TIMESTAMPDIFF(SECOND, NOW(), MIN(IF(moment > NOW(), moment, NULL))) next'
         ." FROM (SELECT publishing_begins moment FROM omp_instances WHERE status = 'O'"
         ." UNION ALL SELECT publishing_ends FROM omp_instances WHERE status = 'O') dates";
@@ -26,14 +27,13 @@ final class PublishingDates
     }
 
     /**
-     * @return array{passed: ?int, next: ?int} seconds since the last date passed (0 or less) and until the next one
-     *                                          (1 or more); null when there is none
+     * @return array{observed_at: int, passed: ?int, next: ?int} the MySQL timestamp and the offsets from that same second
      */
     public static function around(Connection $connection): array
     {
         $row = $connection->selectOne(self::SQL);
 
-        return ['passed' => self::seconds($row->passed), 'next' => self::seconds($row->next)];
+        return ['observed_at' => (int) $row->observed_at, 'passed' => self::seconds($row->passed), 'next' => self::seconds($row->next)];
     }
 
     private static function seconds(mixed $value): ?int
